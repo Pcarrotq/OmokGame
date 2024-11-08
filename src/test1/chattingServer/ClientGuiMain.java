@@ -1,4 +1,4 @@
-package test.chattingServer;
+package test1.chattingServer;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;

@@ -2,11 +2,6 @@ package test.main;
 
 import javax.swing.*;
 
-import omok.additional.CharacterSelectionScreen;
-import omok.additional.EditMember;
-import omok.game.GUI;
-import omok.member.*;
-
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
@@ -14,6 +9,14 @@ import java.net.*;
 import java.sql.*;
 
 import com.google.gson.*;
+
+import test.game.GUI;
+import test.member.DBConnection;
+import test.member.Login;
+import test.member.SignUp;
+import test.retouch.editInfo.EditMember;
+import test.retouch.ui.CharacterSelectionScreen;
+import test.admin.*;
 
 public class GameStartScreen extends JFrame {
 	private JPanel mainPanel;
@@ -162,6 +165,20 @@ public class GameStartScreen extends JFrame {
         });
         mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
         mainPanel.add(settingsButton);
+        
+        // 관리자 설정 버튼
+        JButton adminSettingsButton = new JButton("관리자 설정");
+        adminSettingsButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        adminSettingsButton.setMaximumSize(new Dimension(100, 30));
+        adminSettingsButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // 관리자 대시보드 창 열기
+                new AdminDashboard();
+            }
+        });
+        mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
+        mainPanel.add(adminSettingsButton);
 
         // 로그아웃 버튼
         JButton logoutButton = new JButton("로그아웃");

@@ -1,4 +1,4 @@
-package test.chattingServer;
+package test1.chattingServer;
 
 import java.awt.BorderLayout;
 import java.awt.Container;
