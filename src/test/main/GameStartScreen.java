@@ -2,10 +2,10 @@ package test.main;
 
 import javax.swing.*;
 
-import test.game.GUI;
-import test.member.*;
-import test.retouch.editInfo.EditMember;
-import test.retouch.ui.CharacterSelectionScreen;
+import omok.additional.CharacterSelectionScreen;
+import omok.additional.EditMember;
+import omok.game.GUI;
+import omok.member.*;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -16,187 +16,211 @@ import java.sql.*;
 import com.google.gson.*;
 
 public class GameStartScreen extends JFrame {
-    private JPanel mainPanel;
-    private JTextArea weatherTextArea;
-    private DBConnection dbConnection = new DBConnection();  
-    private String userId = Login.getLoggedInUserId();  
-    private Socket socket;
-
+	private JPanel mainPanel;
+	private JTextArea weatherTextArea;
+	private DBConnection dbConnection = new DBConnection();  // DB 연결 객체
+	private String userId = Login.getLoggedInUserId();  // 로그인된 사용자 ID 가져오기
+	
     public GameStartScreen() {
+        // JFrame 설정
         setTitle("게임 시작 화면");
         setSize(1500, 1000);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
+        setLocationRelativeTo(null); // 화면 중앙에 배치
 
+        // 초기 화면 설정
         showLoginScreen();
     }
-
+    
     private void showLoginScreen() {
+        // JPanel 생성 및 레이아웃 설정
         JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS)); // Y축으로 구성 요소 배치
 
+        // JLabel: 게임 제목
         JLabel titleLabel = new JLabel("Omok Game", SwingConstants.CENTER);
-        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT); // 가운데 정렬
         titleLabel.setFont(new Font("Serif", Font.BOLD, 30));
-        panel.add(Box.createVerticalStrut(50));
+        panel.add(Box.createVerticalStrut(50)); // 여백 추가
         panel.add(titleLabel);
 
+        // 로그인 버튼
         JButton loginButton = new JButton("로그인");
-        loginButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        loginButton.setMaximumSize(new Dimension(100, 30));
+        loginButton.setAlignmentX(Component.CENTER_ALIGNMENT); // 가운데 정렬
+        loginButton.setMaximumSize(new Dimension(100, 30)); // 버튼 크기 설정
+        // 로그인 버튼 액션 리스너
         loginButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 Login login = new Login();
-                login.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                login.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE); // 로그인 창만 닫힘
                 login.setVisible(true);
+
+                // 로그인 성공 시 호출할 콜백 설정
                 login.setLoginSuccessCallback(new Runnable() {
                     @Override
                     public void run() {
+                        // 로그인 성공 시 메인 화면 표시
                         showMainScreen();
                     }
                 });
             }
         });
-        panel.add(Box.createVerticalStrut(20));
+        panel.add(Box.createVerticalStrut(20)); // 여백 추가
         panel.add(loginButton);
-
+        
+        // 회원가입 버튼
         JButton signUpButton = new JButton("회원가입");
-        signUpButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        signUpButton.setMaximumSize(new Dimension(100, 30));
+        signUpButton.setAlignmentX(Component.CENTER_ALIGNMENT); // 가운데 정렬
+        signUpButton.setMaximumSize(new Dimension(100, 30)); // 버튼 크기 설정
         signUpButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                // JOptionPane.showMessageDialog(null, "회원가입");
                 SignUp signUp = new SignUp();
-                signUp.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                signUp.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE); // 회원가입 창만 닫힘
                 signUp.setVisible(true);
             }
         });
-        panel.add(Box.createVerticalStrut(20));
+        panel.add(Box.createVerticalStrut(20)); // 여백 추가
         panel.add(signUpButton);
 
+        // JButton: 종료 버튼
         JButton exitButton = new JButton("종료");
-        exitButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        exitButton.setMaximumSize(new Dimension(100, 30));
+        exitButton.setAlignmentX(Component.CENTER_ALIGNMENT); // 가운데 정렬
+        exitButton.setMaximumSize(new Dimension(100, 30)); // 버튼 크기 설정
         exitButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                // 프로그램 종료
                 System.exit(0);
             }
         });
-        panel.add(Box.createVerticalStrut(20));
+        panel.add(Box.createVerticalStrut(20)); // 여백 추가
         panel.add(exitButton);
 
+        // 패널을 프레임에 추가
         add(panel);
+
+        // 화면 표시
         setVisible(true);
     }
-
+    
+    // 메인 화면 구성
     public void showMainScreen() {
-        getContentPane().removeAll();
+        getContentPane().removeAll(); // 기존 화면 제거
         mainPanel = new JPanel();
-        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS)); // Y축으로 구성 요소 배치
 
+        // JLabel: 게임 제목
         JLabel titleLabel = new JLabel("Omok Game", SwingConstants.CENTER);
-        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT); // 가운데 정렬
         titleLabel.setFont(new Font("Serif", Font.BOLD, 30));
-        mainPanel.add(Box.createVerticalStrut(50));
+        mainPanel.add(Box.createVerticalStrut(50)); // 여백 추가
         mainPanel.add(titleLabel);
 
+        // Start 버튼
         JButton startButton = new JButton("Start");
         startButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         startButton.setMaximumSize(new Dimension(100, 30));
         startButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                connectToServer();
+                // 캐릭터 선택 창 열기
+                CharacterSelectionScreen characterSelection = new CharacterSelectionScreen(selectedCharacter -> {
+                    // 선택된 캐릭터 정보를 받아 게임 GUI 설정
+                    GUI gameGui = new GUI("오목 게임");
+                    gameGui.setPlayer1Profile(selectedCharacter); // 왼쪽 프로필에 설정
+
+                    // 기존 화면 제거하고 새로운 게임 화면 추가
+                    getContentPane().removeAll();
+                    getContentPane().add(gameGui);
+                    revalidate();
+                    repaint();
+                });
+                characterSelection.setVisible(true);
             }
         });
-        mainPanel.add(Box.createVerticalStrut(20));
+        mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
         mainPanel.add(startButton);
 
+        // 개인 설정 버튼
         JButton settingsButton = new JButton("개인 설정");
         settingsButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         settingsButton.setMaximumSize(new Dimension(100, 30));
         settingsButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                // 로그인된 사용자 ID를 사용해 EditMember 화면을 연다
                 String loggedInUserId = Login.getLoggedInUserId();
                 if (loggedInUserId != null) {
-                    new EditMember(loggedInUserId);
+                    new EditMember(loggedInUserId);  // EditMember 화면을 연다 (로그인된 사용자 정보가 사용됨)
                 } else {
                     JOptionPane.showMessageDialog(null, "로그인된 사용자가 없습니다.", "오류", JOptionPane.ERROR_MESSAGE);
                 }
             }
         });
-        mainPanel.add(Box.createVerticalStrut(20));
+        mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
         mainPanel.add(settingsButton);
 
+        // 로그아웃 버튼
         JButton logoutButton = new JButton("로그아웃");
         logoutButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         logoutButton.setMaximumSize(new Dimension(100, 30));
         logoutButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                getContentPane().removeAll();
-                revalidate();
-                repaint();
-                showLoginScreen();
+                // 로그아웃 후 로그인 화면으로 전환
+                getContentPane().removeAll(); // 기존 화면 제거
+                revalidate();  // 레이아웃을 다시 계산
+                repaint();  // 화면을 다시 그리기
+                showLoginScreen();  // 로그인 화면 다시 표시
             }
         });
-        mainPanel.add(Box.createVerticalStrut(20));
+        mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
         mainPanel.add(logoutButton);
 
+        // 종료 버튼
         JButton exitButton = new JButton("종료");
         exitButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         exitButton.setMaximumSize(new Dimension(100, 30));
         exitButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                // 프로그램 종료
                 System.exit(0);
             }
         });
-        mainPanel.add(Box.createVerticalStrut(20));
+        mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
         mainPanel.add(exitButton);
 
-        weatherTextArea = new JTextArea(5, 20);
+        // 날씨 정보 표시 영역 (왼쪽 아래에 배치)
+        weatherTextArea = new JTextArea(5, 20); // 크기를 줄임 (5행, 20열)
         weatherTextArea.setEditable(false);
-        weatherTextArea.setOpaque(false);
-        weatherTextArea.setBackground(new Color(0, 0, 0, 0));
-        weatherTextArea.setForeground(Color.BLACK);
+        weatherTextArea.setOpaque(false);  // 배경을 투명하게 설정
+        weatherTextArea.setBackground(new Color(0, 0, 0, 0));  // 투명한 배경색 설정
+        weatherTextArea.setForeground(Color.BLACK);  // 글자 색을 검정으로 설정
 
+        // 날씨 출력 창의 크기 조정
         JScrollPane scrollPane = new JScrollPane(weatherTextArea);
-        scrollPane.setPreferredSize(new Dimension(300, 100));
-        scrollPane.setOpaque(false);
-        scrollPane.getViewport().setOpaque(false);
+        scrollPane.setPreferredSize(new Dimension(300, 100)); // 날씨 출력 영역 크기 설정
+        scrollPane.setOpaque(false);  // 스크롤 창 자체도 투명하게 설정
+        scrollPane.getViewport().setOpaque(false);  // 뷰포트도 투명하게 설정
 
+        // 날씨 정보를 왼쪽 아래(SOUTH)에 배치
         JPanel weatherPanel = new JPanel();
-        weatherPanel.setLayout(new FlowLayout(FlowLayout.LEFT));
-        weatherPanel.setOpaque(false);
+        weatherPanel.setLayout(new FlowLayout(FlowLayout.LEFT)); // 왼쪽 정렬
+        weatherPanel.setOpaque(false);  // 날씨 패널 자체도 투명하게 설정
         weatherPanel.add(scrollPane);
 
-        mainPanel.add(weatherPanel, BorderLayout.SOUTH);
+        mainPanel.add(weatherPanel, BorderLayout.SOUTH); // 아래쪽(SOUTH)에 배치
 
+        // 패널을 프레임에 추가
         getContentPane().add(mainPanel);
         revalidate();
         repaint();
         
         fetchWeatherData();
-    }
-
-    private void connectToServer() {
-        try {
-            socket = new Socket("localhost", 12345);
-            JOptionPane.showMessageDialog(this, "서버에 연결되었습니다!");
-
-            // 로비 화면 표시
-            LobbyScreen lobbyScreen = new LobbyScreen(socket, this);
-            lobbyScreen.setVisible(true);
-            setVisible(false); // GameStartScreen 숨기기
-
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, "서버에 연결할 수 없습니다. 다시 시도하세요.", "연결 실패", JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
-        }
     }
     
     private String getEnglishCityName(String koreanCity) {
@@ -402,6 +426,6 @@ public class GameStartScreen extends JFrame {
 
     public static void main(String[] args) {
         // 시작 화면 생성
-    	SwingUtilities.invokeLater(GameStartScreen::new);
+        new GameStartScreen();
     }
 }
