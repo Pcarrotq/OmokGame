@@ -1,57 +1,74 @@
 package omok.game;
 
 public class Map {
-	private short[][] map; //맵의 배열 1일 때 흑, -1일 때 백, 0일 때 돌이 안놓여짐
-	private final short BLACK = 1;
-	private final short WHITE = -1;
-	private boolean checkBNW = true; //흑차례 백차례 확인
-	 
-	public Map(MapSize ms){
-		// TODO Auto-generated constructor stub
-		//배열 초기화
-		map = new short[ms.getSize()][];
-		for (int i=0;i<map.length;i++)
-			map[i] = new short[ms.getSize()];
-	
-	}
-	
-	public short getBlack() {
-		return BLACK;
-	}
-	public short getWhite() {
-		return WHITE;
-	}
-	public short getXY(int y,int x) {
-		return map[y][x];
-	}
-	public boolean getCheck() {
-		return checkBNW;
-	}
-	public void changeCheck() {
-		if (checkBNW)
-			checkBNW=false;
-		else
-			checkBNW=true;
-	}
-	public void setMap(int y,int x) {
-		//checkBNW를 확인해 true일 때 map에 BLACK, false일 때 WHITE저장
-		if (checkBNW)
-			map[y][x] = BLACK;
-		else
-		map[y][x] = WHITE;
-	}
-	
-	//승리확인
-	public boolean winCheck(int x,int y){
-		if (winCheckL(x, y)||winCheckLD(x, y)||winCheckLU(x, y)||winCheckR(x, y)
-		||winCheckRD(x, y)||winCheckRU(x, y)||winCheckUp(x, y)||winCheckDown(x, y)
-		||winCheckOneDown(x, y)||winCheckOneL(x, y)||winCheckOneLD(x, y)||winCheckOneLU(x, y)
-		||winCheckOneR(x, y)||winCheckOneRD(x, y)||winCheckOneUp(x, y)||winCheckOneRU(x, y)
-		||winCheckCenterLU(x, y)||winCheckCenterRL(x, y)||winCheckCenterRU(x, y)||winCheckCenterUD(x, y))
-			return true;
-		else
-			return false;
-	}
+    private short[][] map; // 맵의 배열: 1일 때 흑, -1일 때 백, 0일 때 돌이 안 놓여짐
+    private static final short BLACK = 1;
+    private static final short WHITE = -1;
+    private final int CELL = 30;
+    private final int SIZE = 20;
+    private boolean checkBNW = true; // 흑 차례, 백 차례 확인
+
+    public Map() {
+        map = new short[SIZE][SIZE];
+    }
+
+    public short getBlack() {
+        return BLACK;
+    }
+
+    public short getWhite() {
+        return WHITE;
+    }
+
+    public short getXY(int y, int x) {
+        return map[y][x];
+    }
+
+    public boolean getCheck() {
+        return checkBNW;
+    }
+
+    public void changeCheck() {
+        checkBNW = !checkBNW;
+    }
+
+    public void setMap(int y, int x) {
+        // checkBNW를 확인해 true일 때 map에 BLACK, false일 때 WHITE 저장
+        if (checkBNW) {
+            map[y][x] = BLACK;
+        } else {
+            map[y][x] = WHITE;
+        }
+    }
+
+    public int getCell() {
+        return CELL;
+    }
+
+    public int getSize() {
+        return SIZE;
+    }
+
+    // 맵을 초기 상태로 되돌리는 메서드 추가
+    public void reset() {
+        // 모든 맵 셀을 빈 칸으로 설정
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                map[i][j] = 0;
+            }
+        }
+        // 차례를 흑돌로 초기화
+        checkBNW = true;
+    }
+
+    // 승리 확인 로직 (기존 메서드 유지)
+    public boolean winCheck(int x, int y) {
+        return winCheckL(x, y) || winCheckLD(x, y) || winCheckLU(x, y) || winCheckR(x, y) ||
+               winCheckRD(x, y) || winCheckRU(x, y) || winCheckUp(x, y) || winCheckDown(x, y) ||
+               winCheckOneDown(x, y) || winCheckOneL(x, y) || winCheckOneLD(x, y) || winCheckOneLU(x, y) ||
+               winCheckOneR(x, y) || winCheckOneRD(x, y) || winCheckOneUp(x, y) || winCheckOneRU(x, y) ||
+               winCheckCenterLU(x, y) || winCheckCenterRL(x, y) || winCheckCenterRU(x, y) || winCheckCenterUD(x, y);
+    }
 	
 	//위쪽
 	public boolean winCheckUp(int x,int y) {

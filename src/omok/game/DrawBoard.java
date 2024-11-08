@@ -1,74 +1,84 @@
 package omok.game;
 
-import java.awt.Color;
-import java.awt.Graphics;
-
+import java.awt.*;
 import javax.swing.JPanel;
 
 @SuppressWarnings("serial")
 public class DrawBoard extends JPanel {
-	private MapSize size;
-	private Map map;
-	private final int STONE_SIZE = 28; //돌 사이즈
+    private Map map;
+    private static final int STONE_SIZE = 35;
+    private static final Color BOARD_COLOR = new Color(206, 167, 61);
+    private static final Color BLACK_STONE_COLOR = Color.BLACK;
+    private static final Color WHITE_STONE_COLOR = Color.WHITE;
 
-	public DrawBoard(MapSize m,Map map) {
-		// TODO Auto-generated constructor stub
-		setBackground(new Color(255, 255, 255, 255)); //배경색 지정
-		size = m;
-		setLayout(null);
-		this.map = map;
-	}
+    public DrawBoard(Map map) {
+        setBackground(Color.WHITE);
+        setLayout(null);
+        this.map = map;
+    }
 
-	@Override
-	public void paintComponent(Graphics arg0) {
-		// TODO Auto-generated method stub
-		super.paintComponent(arg0);
-		
-		int boardSize = 600; // 외곽선의 고정 크기 설정
-		
-	    // 외곽선 그리기
-	    arg0.setColor(Color.BLACK); // 외곽선 색을 블랙으로 지정
-	    arg0.drawRect(15, 16, boardSize - 1, boardSize - 1);  // 외곽선 1
-	    
-	    // 외곽선 안쪽만 색을 칠하기
-	    arg0.setColor(new Color(206,167,61));
-	    arg0.fillRect(16, 17, boardSize - 2, boardSize - 2);  // 외곽선 안쪽에 색칠
-		
-		arg0.setColor(Color.BLACK); //그려질 색을 블랙지정
-		board(arg0); //보드를 그림
-		drawStone(arg0); //배열에 정보에 따라 돌을 그림
-	}
-	
-	public void board(Graphics arg0) {
-		for (int i=1;i<=size.getSize();i++) {
-			//가로 줄 그리기
-			arg0.drawLine(size.getCell(), i*size.getCell(), size.getCell()*size.getSize(), i*size.getCell()); //시작점 x : 30, 시작점 y : i값 (줄번호)*30, 끝점 x : 600,끝점 y : i값 (줄번호)*30
-			//세로줄 그리기
-			arg0.drawLine(i*size.getCell(), size.getCell(), i*size.getCell() , size.getCell()*size.getSize()); //시작점 x : i값 (줄번호)*30, 시작점 y : 30, 끝점 x : i값 (줄번호)*30, 끝점 y : 600
-		}
-	}
-	
-	public void drawStone(Graphics arg0) {
-		for (int y=0;y<size.getSize();y++) {
-			for (int x=0;x<size.getSize();x++) {
-				// 배열의 정보가 흑일경우 흑돌, 백일경우 백돌을 그림
-				if (map.getXY(y, x) == map.getBlack())
-					drawBlack(arg0,x,y);
-				else if (map.getXY(y, x) == map.getWhite())
-					drawWhite(arg0, x, y);
-			}
-		}
-	}
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        int boardSize = Math.min(getWidth(), getHeight()) - 20;
 
-	public void drawBlack(Graphics arg0,int x,int y) {
-		//그려질 색을 블랙으로 바꿈
-		arg0.setColor(Color.BLACK);
-		arg0.fillOval((x+1) * size.getCell() - 15, (y) * size.getCell() + 15, STONE_SIZE, STONE_SIZE);
-	}
+        // 바둑판의 중앙 위치 계산
+        int offsetX = (getWidth() - boardSize) / 2;
+        int offsetY = (getHeight() - boardSize) / 2;
 
-	public void drawWhite(Graphics arg0,int x,int y) {
-		//그려질 색을 화이트로 바꿈
-		arg0.setColor(Color.WHITE);
-		arg0.fillOval(x * size.getCell() + 15, y * size.getCell() + 15, STONE_SIZE, STONE_SIZE);
-	}
+        // Draw board boundary
+        g.setColor(Color.BLACK);
+        g.drawRect(offsetX, offsetY, boardSize - 1, boardSize - 1);
+
+        // Fill board background
+        g.setColor(BOARD_COLOR);
+        g.fillRect(offsetX + 1, offsetY + 1, boardSize - 2, boardSize - 2);
+
+        drawGrid(g, boardSize, offsetX, offsetY);
+        drawStones(g, boardSize, offsetX, offsetY);
+    }
+
+    // 그리드 그리기 메서드 수정
+    private void drawGrid(Graphics g, int boardSize, int offsetX, int offsetY) {
+        int cellSize = boardSize / map.getSize();
+        int startX = offsetX + cellSize / 2; // 선 시작 위치 조정
+        int startY = offsetY + cellSize / 2; // 선 시작 위치 조정
+
+        g.setColor(Color.BLACK);
+        for (int i = 0; i < map.getSize(); i++) {
+            // 가로 선 그리기
+            g.drawLine(startX, startY + i * cellSize, startX + (map.getSize() - 1) * cellSize, startY + i * cellSize);
+            // 세로 선 그리기
+            g.drawLine(startX + i * cellSize, startY, startX + i * cellSize, startY + (map.getSize() - 1) * cellSize);
+        }
+    }
+
+    // 돌 그리기 메서드 수정
+    private void drawStones(Graphics g, int boardSize, int offsetX, int offsetY) {
+        int cellSize = boardSize / map.getSize();
+        for (int y = 0; y < map.getSize(); y++) {
+            for (int x = 0; x < map.getSize(); x++) {
+                int stoneType = map.getXY(y, x);
+                if (stoneType == map.getBlack()) {
+                    drawStone(g, x, y, cellSize, BLACK_STONE_COLOR, offsetX, offsetY);
+                } else if (stoneType == map.getWhite()) {
+                    drawStone(g, x, y, cellSize, WHITE_STONE_COLOR, offsetX, offsetY);
+                }
+            }
+        }
+    }
+
+    // 돌 그리기 위치 보정 추가
+    private void drawStone(Graphics g, int x, int y, int cellSize, Color stoneColor, int offsetX, int offsetY) {
+        int stoneX = offsetX + x * cellSize + (cellSize / 2) - (STONE_SIZE / 2);
+        int stoneY = offsetY + y * cellSize + (cellSize / 2) - (STONE_SIZE / 2);
+        
+        g.setColor(stoneColor);
+        g.fillOval(stoneX, stoneY, STONE_SIZE, STONE_SIZE);
+        
+        if (stoneColor.equals(WHITE_STONE_COLOR)) {
+            g.setColor(Color.BLACK);
+            g.drawOval(stoneX, stoneY, STONE_SIZE, STONE_SIZE);
+        }
+    }
 }

@@ -1,80 +1,53 @@
 package omok.member;
 
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.GridLayout;
-import java.awt.Insets;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.*;
+import java.awt.event.*;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.imageio.ImageIO;
-import javax.swing.BorderFactory;
-import javax.swing.BoxLayout;
-import javax.swing.ButtonGroup;
-import javax.swing.DefaultListModel;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JList;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JPasswordField;
-import javax.swing.JRadioButton;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
+import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import java.sql.*;
+import javax.imageio.ImageIO;
+import java.io.*;
+import java.util.regex.*;
 
-import omok.member.DBConnection;
+import omok.additional.ImageCropper;
+import omok.member.*;
 
 public class SignUp extends JFrame implements ActionListener {
     // 패널 컴포넌트
-    JPanel mainPanel, subPanel;
-    
-    // 필드 컴포넌트 - 글자 작성
-    JTextField emailLocalTf, emailDomainTf, addressTf;
+    JPanel mainPanel, formPanel, profilePanel, registerBtnPanel;
+    JPanel idPanel, nicknamePanel, passPanel, passRePanel;
+	JPanel namePanel, birthPanel, genderPanel, phoneNumPanel, emailPanel;
+	JPanel postalCodePanel, addressPanel, detailAddressPanel;
     
 	// 입력란 컴포넌트
-    JTextField idTf, nameTf, phoneTf, postalCodeTf, detailedAddressTf;
+    JTextField emailLocalTf, emailDomainTf;
+    JTextField nameTf, idTf, nicknameTf, phoneMiddleTf, phoneBackTf, postalCodeTf, detailedAddressTf;
+    JTextField addressTf;
     JPasswordField passTf, passReTf;
 
     // 선택 박스 컴포넌트 - 클릭하면 값이 밑으로 펼쳐짐
     JComboBox<String> yearComboBox, monthComboBox, dayComboBox;
+    JComboBox<String> phoneFrontComboBox;
 
     // 선택 컴포넌트 - 원하는 것 선택
     JRadioButton menButton, girlButton;
 
     // 버튼 컴포넌트
-    JButton registerButton, idCheckButton, uploadButton, addressBtn, postalCodeBtn, defaultProfileButton;
+    JButton registerButton, idCheckButton, nicknameButton, uploadButton, addressBtn, postalCodeBtn, defaultProfileButton;
 
     // 라벨 컴포넌트 - 글자 띄워줌
-    JLabel imageLabel, idLabel, passLabel, passReLabel;
-    JLabel nameLabel, birthLabel, sexLabel, phoneLabel, emailLabel, atLabel;
+    JLabel titleLabel;
+    JLabel imageLabel, idLabel, nicknameLabel, passLabel, passReLabel, passSecurityLabel;
+    JLabel nameLabel, birthLabel, genderLabel, phoneNumLabel, emailLabel, emailAtLabel;
     JLabel postalCodeLabel, addressLabel, detailedAddressLabel;
     
     BufferedImage profileImage;
     ButtonGroup sexGroup;
+    JProgressBar strengthBar;
 
-    JComboBox<String> emailDomainCb; // 이메일 주소 선택 박스
-
-    String[] emailDomains = {"직접 입력", "gmail.com", "naver.com", "daum.net", "hotmail.com"};
+    JComboBox<String> emailDomainComboBox; // 이메일 주소 선택 박스
+    
     JTextArea addressSuggestionTa; // 주소 추천 표시할 텍스트 영역
     
     ProfilePictureSelector profilePictureSelector;
@@ -83,83 +56,137 @@ public class SignUp extends JFrame implements ActionListener {
     Font font = new Font("회원가입", Font.BOLD, 40);
 
     
-    String year = "", month = "", day = "";
-    String id = "", pass = "", passRe = "", name = "", sex = "", phone = "";
+    String years = "", months = "", days = "";
+    String id = "", pass = "", passRe = "", name = "", sex = "", nickname = "";
+    String phoneFront = "", phone = "", email = "", gender = "";
+    String postalCode = "", address = "", detailedAddress = "";
     
     
     DBConnection lp = new DBConnection();
+    private static SignUp currentInstance;
 
     
     public SignUp() {
+    	currentInstance = this;
+    	
         setTitle("회원가입");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // 창 닫기 버튼 활성화
-        setSize(1500, 1000); // 창 크기 설정
+        // setSize(1500, 1000); // 창 크기 설정
         
-        // 메인 패널 설정
+        getContentPane().setLayout(new GridBagLayout());
+        
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10); // 컴포넌트 사이의 간격 설정
+        gbc.anchor = GridBagConstraints.NORTHWEST; // 컴포넌트를 왼쪽 상단에 배치
+        
+        
+        // 입력 필드 패널
         mainPanel = new JPanel();
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(25, 25, 25, 25));
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
         
+        
         // 제목 레이블
-        JLabel signupLabel = new JLabel("회원가입 화면");
-        signupLabel.setFont(font);
-        signupLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        // 서브 패널 설정
-        subPanel = new JPanel();
-        subPanel.setLayout(new GridBagLayout());
-        subPanel.setBorder(BorderFactory.createEmptyBorder(25, 25, 25, 25));
-
-        // 프로필 패널
-        JPanel profilePanel = new JPanel();
+        titleLabel = new JLabel("회원가입 화면");
+        titleLabel.setFont(font);
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2; // 전체 너비 차지
+        gbc.anchor = GridBagConstraints.CENTER; // 중앙 배치
+        gbc.weightx = 1.0; // 가로로 여유 공간을 채우기 위해 가중치 추가
+        gbc.weighty = 0.1; // 세로로 약간의 공간을 차지하게 설정
+        getContentPane().add(titleLabel, gbc);
+        
+        
+        // 프로필 사진 패널
+        profilePanel = new JPanel();
         profilePanel.setLayout(new BoxLayout(profilePanel, BoxLayout.Y_AXIS));
+        profilePanel.add(new JLabel("프로필 사진 설정:"));
+        profilePanel.add(Box.createVerticalStrut(10)); // 간격 추가
 
-        imageLabel = new JLabel("프로필 사진 미선택");
-        imageLabel.setBorder(BorderFactory.createEtchedBorder());
-        imageLabel.setPreferredSize(new Dimension(150, 150)); // 이미지 표시 영역 크기
+        // 프로필 사진 보이는 부분 (사각형)
+        imageLabel = new JLabel();
+        imageLabel.setPreferredSize(new Dimension(150, 150)); // 사각형 크기
+        imageLabel.setMinimumSize(new Dimension(150, 150)); // 최소 크기 고정
+        imageLabel.setMaximumSize(new Dimension(150, 150)); // 최대 크기 고정
+        imageLabel.setBorder(BorderFactory.createLineBorder(Color.BLACK)); // 검정 테두리
         profilePanel.add(imageLabel);
-
-        uploadButton = new JButton("프로필 사진 선택");
-        profilePanel.add(uploadButton);
         
-        // 기본 프로필 선택 버튼
+        profilePanel.add(Box.createVerticalStrut(10)); // 간격 추가
+        
+        uploadButton = new JButton("프로필 선택 버튼");
         defaultProfileButton = new JButton("기본 프로필 선택");
+        profilePanel.add(uploadButton);
         profilePanel.add(defaultProfileButton);
-
-        // ProfilePictureSelector 초기화
+        
+        // profilePanel 위치 설정
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.gridwidth = 1; // 왼쪽에 위치
+        gbc.anchor = GridBagConstraints.NORTHEAST; // 오른쪽 정렬
+        gbc.weightx = 0.5; // 좌우 공간을 동일하게 차지
+        getContentPane().add(profilePanel, gbc);
+        
+        // profilePictureSelector 초기화, 기본 프로필 설정을 위한 변수
         profilePictureSelector = new ProfilePictureSelector();
+        
+        
+        // 서브 패널 설정
+        formPanel = new JPanel();
+        formPanel.setLayout(new GridBagLayout());
+        formPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        
+        nameTf = new JTextField(10);
+        addField(formPanel, gbc, "이름:", nameTf, 0);
+        
 
-        // 이메일 입력란 설정
-        emailLocalTf = new JTextField(10);
-        emailDomainCb = new JComboBox<>(emailDomains);
+        idTf = new JTextField(10);
+        idCheckButton = new JButton("중복 확인");
+        idPanel = new JPanel();
+        idPanel.add(idTf);
+        idPanel.add(idCheckButton);
+        addField(formPanel, gbc, "아이디:", idPanel, 1);
+        
 
-        // 우편번호 입력란 설정
-        postalCodeTf = new JTextField(10);
-        postalCodeBtn = new JButton("우편번호 검색");
+        nicknameTf = new JTextField(10);
+        nicknameButton = new JButton("중복 확인");
+        nicknamePanel = new JPanel();
+        nicknamePanel.add(nicknameTf);
+        nicknamePanel.add(nicknameButton);
+        addField(formPanel, gbc, "닉네임:", nicknamePanel, 2);
+        
 
-        // 상세 주소 입력란 설정
-        detailedAddressTf = new JTextField(15);
-
-        // 정보 입력
-        idLabel = new JLabel("아이디 : ");
-        passLabel = new JLabel("비밀번호 : ");
-        passReLabel = new JLabel("비밀번호 재확인 : ");
-        nameLabel = new JLabel("이름 : ");
-        birthLabel = new JLabel("생년월일 : ");
-        sexLabel = new JLabel("성별 : ");
-        phoneLabel = new JLabel("핸드폰번호 : ");
-        atLabel = new JLabel("@");
+        passTf = new JPasswordField(10);
+        strengthBar = new JProgressBar(0, 100) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                String strengthText = getStrengthText(getValue());
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2d.setColor(Color.BLACK); // 텍스트 색상
+                FontMetrics metrics = g2d.getFontMetrics();
+                int x = (getWidth() - metrics.stringWidth(strengthText)) / 2;
+                int y = (getHeight() - metrics.getHeight()) / 2 + metrics.getAscent();
+                g2d.drawString(strengthText, x, y);
+            }
+        };
+        strengthBar.setPreferredSize(new Dimension(150, 20));
+        passPanel = new JPanel();
+        passPanel.add(passTf);
+        passPanel.add(strengthBar);
+        addField(formPanel, gbc, "패스워드:", passPanel, 3);
 
         
-        idTf = new JTextField(10);
-        passTf = new JPasswordField(10);
         passReTf = new JPasswordField(10);
-        nameTf = new JTextField(10);
-        // yearTf = new JTextField(4);
-        phoneTf = new JTextField(10);
-        emailDomainTf = new JTextField(10);
+        passRePanel = new JPanel();
+        passRePanel.add(passReTf);
+        addField(formPanel, gbc, "패스워드 확인:", passRePanel, 4);
+        
 
-        // 날짜 선택
         yearComboBox = new JComboBox<String>(
         		new String[] {"1950", "1951", "1952", "1953", "1954", "1955", "1956", "1957", "1958", "1959",
         				"1960", "1961", "1962", "1963", "1964", "1965", "1966", "1967", "1968", "1969",
@@ -169,181 +196,133 @@ public class SignUp extends JFrame implements ActionListener {
         				"2000", "2001", "2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009",
         				"2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019",
         				"2020", "2021", "2022", "2023", "2024"});
+
         monthComboBox = new JComboBox<String>(
                 new String[] {"01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"});
+
         dayComboBox = new JComboBox<String>(new String[] {"01", "02", "03", "04", "05", "06", "07", "08", "09", "10",
                 "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27",
                 "28", "29", "30", "31"});
+        
+        birthPanel = new JPanel();
+        birthPanel.add(yearComboBox);
+        birthPanel.add(monthComboBox);
+        birthPanel.add(dayComboBox);
+        addField(formPanel, gbc, "나이:", birthPanel, 5);
+        
 
-        // 성별 선택
+        phoneFrontComboBox = new JComboBox<String>(new String[] {"010", "020", "030", "040", "050", "060", "070", "080", "090"});
+        phoneMiddleTf = new JTextField(10);
+        phoneBackTf = new JTextField(10);
+        phoneNumPanel = new JPanel();
+        phoneNumPanel.add(phoneFrontComboBox);
+        phoneNumPanel.add(phoneMiddleTf);
+        phoneNumPanel.add(phoneBackTf);
+        addField(formPanel, gbc, "전화번호:", phoneNumPanel, 6);
+        
+
         menButton = new JRadioButton("남자");
         girlButton = new JRadioButton("여자");
-        ButtonGroup sexGroup = new ButtonGroup();
-        sexGroup.add(menButton);
-        sexGroup.add(girlButton);
-
-        // 아이디 중복 체크 버튼
-        idCheckButton = new JButton("중복 체크");
+        genderPanel = new JPanel();
+        genderPanel.add(menButton);
+        genderPanel.add(girlButton);
+        addField(formPanel, gbc, "성별:", genderPanel, 7);
         
-        addressTf = new JTextField();
 
-        // Add components to layout
-        GridBagConstraints c = new GridBagConstraints();
-        c.fill = GridBagConstraints.HORIZONTAL;
-        c.insets = new Insets(15, 5, 0, 0);
+        emailLocalTf = new JTextField(10);
+        emailAtLabel = new JLabel("@");
+        emailDomainTf = new JTextField(10);
+        emailDomainComboBox = new JComboBox<String>(new String[] {"직접 입력", "gmail.com", "naver.com", "daum.net", "hotmail.com"});
+        emailPanel = new JPanel();
+        emailPanel.add(emailLocalTf);
+        emailPanel.add(emailAtLabel);
+        emailPanel.add(emailDomainTf);
+        emailPanel.add(emailDomainComboBox);
+        addField(formPanel, gbc, "이메일:", emailPanel, 8);
         
+
+        postalCodeTf = new JTextField(10);
+        postalCodeTf.setEditable(false);
+        postalCodeBtn = new JButton("우편번호 검색");
+        postalCodePanel = new JPanel();
+        postalCodePanel.add(postalCodeTf);
+        postalCodePanel.add(postalCodeBtn);
+        addField(formPanel, gbc, "우편번호:", postalCodePanel, 9);
         
-        // 프로필 사진
-        c.gridx = 1;
-        c.gridy = 0;
-        subPanel.add(imageLabel, c);
-        c.gridx = 1;
-        c.gridy = 1;
-        subPanel.add(uploadButton, c);
-        c.gridx = 2;
-        c.gridy = 1;
-        subPanel.add(defaultProfileButton, c);
 
-        // 아이디
-		c.gridx = 0;
-		c.gridy = 2;
-		subPanel.add(idLabel, c);
-		c.gridx = 1;
-		c.gridy = 2;
-		subPanel.add(idTf, c); // 아이디
-		c.gridx = 2;
-		c.gridy = 2;
-		subPanel.add(idCheckButton, c); // 아디디 중복 체크
-
-		// 비밀번호
-		c.gridx = 0;
-		c.gridy = 3;
-		subPanel.add(passLabel, c);
-		c.gridx = 1;
-		c.gridy = 3;
-		subPanel.add(passTf, c); // pass
-		c.gridx = 2;
-		c.gridy = 3; 
-		subPanel.add(new JLabel("특수문자 + 8자"), c); // 보안설정
-
-		// 비밀번호 재확인
-		c.gridx = 0;
-		c.gridy = 4;
-		subPanel.add(passReLabel, c);
-		c.gridx = 1;
-		c.gridy = 4;
-		subPanel.add(passReTf, c); // password 재확인
-
-		// 이름
-		c.gridx = 0;
-		c.gridy = 5;
-		subPanel.add(nameLabel, c);
-		c.gridx = 1;
-		c.gridy = 5;
-		subPanel.add(nameTf, c); // 이름
-
-		// 생일
-		c.gridx = 0;
-		c.gridy = 6;
-		subPanel.add(birthLabel, c);
-		c.gridx = 1;
-		c.gridy = 6;
-		c.weightx = 0.6;
-		subPanel.add(yearComboBox, c); // 년
-		c.gridx = 2;
-		c.gridy = 6;
-		c.weightx = 0.2;
-		subPanel.add(monthComboBox, c); // 월
-		c.gridx = 3;
-		c.gridy = 6;
-		c.weightx = 0.2;
-		subPanel.add(dayComboBox, c); // 일
-
-		// 성별
-		c.gridx = 0;
-		c.gridy = 7;
-		subPanel.add(sexLabel, c);
-		c.gridx = 1;
-		c.gridy = 7;
-		subPanel.add(menButton, c); // 남자
-		c.gridx = 2;
-		c.gridy = 7;
-		subPanel.add(girlButton, c); // 여자
-
-		// 전화번호
-		c.gridx = 0;
-		c.gridy = 8;
-		subPanel.add(phoneLabel, c);
-		c.gridx = 1;
-		c.gridy = 8;
-		subPanel.add(phoneTf, c);
-		
-		// 이메일
-        c.gridx = 0;
-        c.gridy = 9;
-        subPanel.add(new JLabel("이메일:"), c);
-        c.gridx = 1;
-        c.gridy = 9;
-        subPanel.add(emailLocalTf, c); // @ 앞 입력란
-        c.gridx = 2;
-        c.gridy = 9;
-        subPanel.add(atLabel,c);
-        c.gridx = 3;
-        c.gridy = 9;
-        subPanel.add(emailDomainTf, c); // @ 뒤 직접 입력란
-        c.gridx = 4;
-        c.gridy = 9;
-        subPanel.add(emailDomainCb, c); // @ 뒤 도메인 선택 콤보박스
-
-        // 우편번호
-        c.gridx = 0;
-        c.gridy = 10;
-        subPanel.add(new JLabel("우편번호:"), c);
-        c.gridx = 1;
-        c.gridy = 10;
-        postalCodeTf.setEditable(false); // 우편번호는 수정 불가
-        subPanel.add(postalCodeTf, c);  // 우편번호 입력란
-        c.gridx = 2;
-        c.gridy = 10;
-        subPanel.add(postalCodeBtn, c);  // 우편번호 검색 버튼
-
-        // 주소
-        c.gridx = 0;
-        c.gridy = 11;
-        subPanel.add(new JLabel("주소:"), c);
-        c.gridx = 1;
-        c.gridy = 11;
-        addressTf.setEditable(false); // 검색된 주소로 자동 설정
-        subPanel.add(addressTf, c);
+        addressTf = new JTextField(30);
+        addressTf.setEditable(false);
+        addressPanel = new JPanel();
+        addressPanel.add(addressTf);
+        addField(formPanel, gbc, "주소:", addressPanel, 10);
         
-        // 상세 주소
-        c.gridx = 0;
-        c.gridy = 12;
-        subPanel.add(new JLabel("상세주소:"), c);
-        c.gridx = 1;
-        c.gridy = 12;
-        subPanel.add(detailedAddressTf, c);
+
+        detailedAddressTf = new JTextField(30);
+        detailAddressPanel = new JPanel();
+        detailAddressPanel.add(detailedAddressTf);
+        addField(formPanel, gbc, "상세 주소:", detailAddressPanel, 11);
+
+        
+        // formPanel 위치 설정
+        gbc.gridx = 1;
+        gbc.gridy = 1;
+        gbc.gridwidth = 1; // 오른쪽에 위치
+        gbc.weightx = 0.5;
+        gbc.anchor = GridBagConstraints.WEST; // 왼쪽 정렬
+        getContentPane().add(formPanel, gbc);
+        
 
 		registerButton = new JButton("회원가입");
 		registerButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        // 메인 패널에 추가
-        mainPanel.add(signupLabel);  // 제목 추가
-        mainPanel.add(profilePanel); // 프로필 패널 추가
-        mainPanel.add(subPanel);     // 서브 패널 추가
-        mainPanel.add(registerButton); // 회원가입 버튼 추가
+		
+	    gbc.gridx = 0;
+	    gbc.gridy = 2;
+	    gbc.gridwidth = 2; // 전체 너비 차지
+	    gbc.weightx = 1.0;
+	    gbc.weighty = 0.1; // 하단에 적절한 공간을 할당
+	    gbc.anchor = GridBagConstraints.SOUTH; // 하단 중앙에 배치
+	    getContentPane().add(registerButton, gbc);
         
         // JFrame에 메인 패널 추가
         add(mainPanel);
 
+        pack();
+        
         // 창을 화면에 표시
         setVisible(true);
+        
         
 		// 아이디 중복 체크 버튼 리스너
 		idCheckButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				checkIdDuplication();
+			}
+		});
+		// 닉네임 중복 체크 버튼 리스너
+		nicknameButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				checkNicknameDuplication();
+			}
+		});
+		
+		passTf.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                String password = new String(passTf.getPassword());
+                int strength = calculatePasswordStrength(password);
+                strengthBar.setValue(strength);
+            }
+        });
+		phoneFrontComboBox.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (e.getSource() == phoneFrontComboBox) {
+					JComboBox phoneBox = (JComboBox) e.getSource();
+					phoneFront = (String) phoneBox.getSelectedItem();
+					System.out.println(months);
+				}
 			}
 		});
 
@@ -353,8 +332,8 @@ public class SignUp extends JFrame implements ActionListener {
 			public void actionPerformed(ActionEvent e) {
 				if (e.getSource() == monthComboBox) {
 					JComboBox monthBox = (JComboBox) e.getSource();
-					month = (String) monthBox.getSelectedItem();
-					System.out.println(month);
+					months = (String) monthBox.getSelectedItem();
+					System.out.println(months);
 				}
 			}
 		});
@@ -364,8 +343,8 @@ public class SignUp extends JFrame implements ActionListener {
 				// TODO Auto-generated method stub
 				if (e.getSource() == dayComboBox) {
 					JComboBox dayBox = (JComboBox) e.getSource();
-					day = (String) dayBox.getSelectedItem();
-					System.out.println(month);
+					days = (String) dayBox.getSelectedItem();
+					System.out.println(days);
 				}
 			}
 		});
@@ -385,100 +364,121 @@ public class SignUp extends JFrame implements ActionListener {
 		});
 		
 		// 회원가입 버튼 리스너
-	    registerButton.addActionListener(new ActionListener() {
-	        @Override
-	        public void actionPerformed(ActionEvent e) {
-	            id = idTf.getText();
-	            pass = new String(passTf.getPassword());
-	            passRe = new String(passReTf.getPassword());
-	            name = nameTf.getText();
-	            phone = phoneTf.getText();
-	            String email = emailLocalTf.getText() + "@" + emailDomainTf.getText(); // 이메일 통합
-	            String address = addressTf.getText() + " " + detailedAddressTf.getText(); // 주소 통합
-	            String gender = menButton.isSelected() ? "M" : "F"; // 성별 설정
+		registerButton.addActionListener(new ActionListener() {
+		    @Override
+		    public void actionPerformed(ActionEvent e) {
+		        id = idTf.getText();
+		        pass = new String(passTf.getPassword());
+		        passRe = new String(passReTf.getPassword());
+		        name = nameTf.getText();
+		        nickname = nicknameTf.getText(); // 닉네임 추가
+		        phone = phoneFrontComboBox.getSelectedItem() + phoneMiddleTf.getText() + phoneBackTf.getText();
+		        email = emailLocalTf.getText() + "@" + emailDomainTf.getText();
+		        postalCode = postalCodeTf.getText(); // 우편번호
+		        address = addressTf.getText(); // 주소
+		        detailedAddress = detailedAddressTf.getText(); // 상세 주소
+		        gender = menButton.isSelected() ? "M" : "F";
 
-	            String sql = "INSERT INTO user_info (id, password, name, email, birthdate, gender, phone_number, address, profile_image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+		        // 비밀번호 유효성 검사
+		        Pattern passPattern = Pattern.compile("^(?=.*[a-zA-Z])(?=.*\\d)(?=.*\\W).{8,20}$"); // 8자 영문+특수문자+숫자
+		        Matcher passMatcher = passPattern.matcher(pass);
 
-	            Pattern passPattern1 = Pattern.compile("^(?=.*[a-zA-Z])(?=.*\\d)(?=.*\\W).{8,20}$"); //8자 영문+특문+숫자
-	            Matcher passMatcher = passPattern1.matcher(pass);
+		        if (!passMatcher.find()) {
+		            JOptionPane.showMessageDialog(null, "비밀번호는 영문+특수문자+숫자 8자로 구성되어야 합니다", "비밀번호 오류", JOptionPane.ERROR_MESSAGE);
+		        } else if (!pass.equals(passRe)) {
+		            JOptionPane.showMessageDialog(null, "비밀번호가 서로 맞지 않습니다", "비밀번호 오류", JOptionPane.ERROR_MESSAGE);
+		        } else {
+		            Connection conn = null;
+		            PreparedStatement pstmt = null;
 
-	            if (!passMatcher.find()) {
-	                JOptionPane.showMessageDialog(null, "비밀번호는 영문+특수문자+숫자 8자로 구성되어야 합니다", "비밀번호 오류", 1);
-	            } else if (!pass.equals(passRe)) {
-	                JOptionPane.showMessageDialog(null, "비밀번호가 서로 맞지 않습니다", "비밀번호 오류", 1);
-	            } else {
-	                try {
-	                    Connection conn = lp.getConnection(); // lp 초기화 후 호출
+		            try {
+		                conn = lp.getConnection(); // 데이터베이스 연결
+		                String sql = "INSERT INTO user_info (id, password, name, nickname, email, birth_year, birth_month, birth_day, gender, phone_number, postal_code, address, detailed_address, profile_image) "
+		                           + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"; // 쿼리 업데이트
 
-	                    PreparedStatement pstmt = conn.prepareStatement(sql);
+		                pstmt = conn.prepareStatement(sql);
+		                
+		                // 생년월일 각 필드를 따로 저장
+		                int birthYear = Integer.parseInt((String) yearComboBox.getSelectedItem());
+		                int birthMonth = Integer.parseInt((String) monthComboBox.getSelectedItem());
+		                int birthDay = Integer.parseInt((String) dayComboBox.getSelectedItem());
 
-	                    String date = year + "-" + month + "-" + day;
+		                pstmt.setString(1, id);
+		                pstmt.setString(2, pass);
+		                pstmt.setString(3, name);
+		                pstmt.setString(4, nickname); // 닉네임 추가
+		                pstmt.setString(5, email);
+		                pstmt.setInt(6, birthYear); // 생년 추가
+		                pstmt.setInt(7, birthMonth); // 생월 추가
+		                pstmt.setInt(8, birthDay); // 생일 추가
+		                pstmt.setString(9, gender);
+		                pstmt.setString(10, phone);
+		                pstmt.setString(11, postalCode); // 우편번호 추가
+		                pstmt.setString(12, address); // 주소 추가
+		                pstmt.setString(13, detailedAddress); // 상세 주소 추가
 
-	                    pstmt.setString(1, idTf.getText());
-	                    pstmt.setString(2, pass);
-	                    pstmt.setString(3, nameTf.getText());
-	                    pstmt.setString(4, email);
-	                    pstmt.setString(5, date);
-	                    pstmt.setString(6, gender);
-	                    pstmt.setString(7, phoneTf.getText());
-	                    pstmt.setString(8, address);
-	                    
-	                    // 프로필 이미지를 BLOB으로 저장
-	                    // 프로필 이미지가 선택되지 않았을 경우 처리
-	                    if (profileImage != null) {
-	                        try {
-	                            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-	                            boolean result = ImageIO.write(profileImage, "png", baos);
-	                            byte[] profileImageByteArray = baos.toByteArray();
-	                            if (!result) {
-	                                throw new IOException("이미지 저장에 실패했습니다. 지원되지 않는 형식입니다.");
-	                            }
-	                            pstmt.setBytes(9, profileImageByteArray); // 프로필 이미지를 바이트 배열로 저장
-	                        } catch (IOException ex) {
-	                            ex.printStackTrace();
-	                            JOptionPane.showMessageDialog(null, "이미지를 저장하는 도중 오류가 발생했습니다.", "오류", JOptionPane.ERROR_MESSAGE);
-	                        }
-	                    } else {
-	                        // 프로필 이미지가 선택되지 않은 경우 NULL 처리
-	                        pstmt.setNull(9, java.sql.Types.BLOB); // 프로필 이미지가 없을 때는 NULL 설정
-	                    }
+		                // 프로필 이미지 저장 (이미지가 있으면 저장, 없으면 NULL)
+		                if (profileImage != null) {
+		                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		                    ImageIO.write(profileImage, "png", baos);
+		                    pstmt.setBytes(14, baos.toByteArray());
+		                } else {
+		                    pstmt.setNull(14, java.sql.Types.BLOB);
+		                }
 
-	                    int r = pstmt.executeUpdate();
-	                    System.out.println("변경된 row " + r);
-	                    JOptionPane.showMessageDialog(null, "회원 가입 완료!", "회원가입", 1);
-	                    // 로그인 화면으로 이동하는 코드는 필요에 따라 수정 가능
-	                } catch (SQLException e1) {
-	                    System.out.println("SQL error" + e1.getMessage());
-	                    if (e1.getMessage().contains("PRIMARY")) {
-	                        JOptionPane.showMessageDialog(null, "아이디 중복!", "아이디 중복 오류", 1);
-	                    } else
-	                        JOptionPane.showMessageDialog(null, "정보를 제대로 입력해주세요!", "오류", 1);
-	                }
-	            }
-	        }
-	    });
+		                // 쿼리 실행
+		                int result = pstmt.executeUpdate();
+		                if (result > 0) {
+		                    JOptionPane.showMessageDialog(null, "회원 가입 완료!", "회원가입", JOptionPane.INFORMATION_MESSAGE);
+		                }
+
+		            } catch (SQLException | IOException ex) {
+		                ex.printStackTrace();
+		                JOptionPane.showMessageDialog(null, "회원 가입 중 오류가 발생했습니다. 다시 시도해주세요.", "오류", JOptionPane.ERROR_MESSAGE);
+		            } finally {
+		                // 리소스 해제
+		                if (pstmt != null) try { pstmt.close(); } catch (SQLException e1) { e1.printStackTrace(); }
+		                if (conn != null) try { conn.close(); } catch (SQLException e1) { e1.printStackTrace(); }
+		            }
+		        }
+		    }
+		});
 		
         // 이미지 선택 버튼 리스너
-        uploadButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                JFileChooser fileChooser = new JFileChooser();
-                fileChooser.setFileFilter(new FileNameExtensionFilter("이미지 파일", "jpg", "jpeg", "png"));
-                int returnValue = fileChooser.showOpenDialog(null);
-                if (returnValue == JFileChooser.APPROVE_OPTION) {
-                    File selectedFile = fileChooser.getSelectedFile();
-                    try {
-                        profileImage = ImageIO.read(selectedFile);
-                        ImageIcon icon = new ImageIcon(profileImage.getScaledInstance(150, 150, BufferedImage.SCALE_SMOOTH));
-                        imageLabel.setIcon(icon);
-                        imageLabel.setText(""); // 텍스트 제거
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
-                        JOptionPane.showMessageDialog(null, "이미지 로드 실패", "오류", JOptionPane.ERROR_MESSAGE);
-                    }
-                }
-            }
-        });
+		uploadButton.addActionListener(new ActionListener() {
+		    @Override
+		    public void actionPerformed(ActionEvent e) {
+		        JFileChooser fileChooser = new JFileChooser();
+		        fileChooser.setFileFilter(new FileNameExtensionFilter("이미지 파일", "jpg", "jpeg", "png"));
+		        int returnValue = fileChooser.showOpenDialog(null);
+		        if (returnValue == JFileChooser.APPROVE_OPTION) {
+		            File selectedFile = fileChooser.getSelectedFile();
+		            try {
+		                BufferedImage selectedImage = ImageIO.read(selectedFile);
+
+		                // 이미지 크롭을 위해 ImageCropper 창 열기
+		                ImageCropper cropper = new ImageCropper(selectedImage);
+		                int result = JOptionPane.showConfirmDialog(null, cropper, "이미지 크롭", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE, null);
+
+		                if (result == JOptionPane.OK_OPTION) {
+		                    // 사용자가 OK 버튼을 누르면 크롭된 이미지를 가져와서 프로필에 반영
+		                    BufferedImage croppedImage = cropper.getCroppedImage();  // 크롭된 이미지 가져오기
+		                    if (croppedImage != null) {
+		                        profileImage = croppedImage;  // SignUp의 profileImage에 저장
+		                        
+		                        // 크롭된 이미지를 이미지 레이블에 아이콘으로 설정
+		                        ImageIcon croppedIcon = new ImageIcon(croppedImage.getScaledInstance(150, 150, Image.SCALE_SMOOTH));
+		                        imageLabel.setIcon(croppedIcon);
+		                        imageLabel.setPreferredSize(new Dimension(150, 150));
+		                    }
+		                }
+		            } catch (IOException ex) {
+		                ex.printStackTrace();
+		                JOptionPane.showMessageDialog(null, "이미지 로드 실패", "오류", JOptionPane.ERROR_MESSAGE);
+		            }
+		        }
+		    }
+		});
         
         // 우편번호 검색 버튼 액션 리스너
         postalCodeBtn.addActionListener(new ActionListener() {
@@ -490,11 +490,11 @@ public class SignUp extends JFrame implements ActionListener {
         });
         
         // 이메일 도메인 콤보박스의 ActionListener
-        emailDomainCb.addActionListener(new ActionListener() {
+        emailDomainComboBox.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 // 선택된 도메인을 이메일 도메인 텍스트 필드에 설정
-                String selectedDomain = (String) emailDomainCb.getSelectedItem();
+                String selectedDomain = (String) emailDomainComboBox.getSelectedItem();
                 emailDomainTf.setText(selectedDomain);
             }
         });
@@ -508,6 +508,43 @@ public class SignUp extends JFrame implements ActionListener {
         });
         
         setVisible(true);
+    }
+    
+    // 현재 SignUp 인스턴스를 반환하는 메서드
+    public static SignUp getCurrentInstance() {
+        return currentInstance;
+    }
+    
+    // GridBagConstraints 생성 메서드
+    private GridBagConstraints createGbc(int gridx, int gridy) {
+        return createGbc(gridx, gridy, 1);
+    }
+
+    private GridBagConstraints createGbc(int gridx, int gridy, int gridwidth) {
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = gridx;
+        gbc.gridy = gridy;
+        gbc.gridwidth = gridwidth;
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.anchor = GridBagConstraints.WEST; // 왼쪽 정렬
+        return gbc;
+    }
+    
+    // 필드 추가 메서드
+    private void addField(JPanel panel, GridBagConstraints gbc, String labelText, Component field, int row) {
+        GridBagConstraints gbcLabel = new GridBagConstraints();
+        gbcLabel.gridx = 0;
+        gbcLabel.gridy = row;
+        gbcLabel.anchor = GridBagConstraints.WEST;
+        gbcLabel.insets = new Insets(10, 10, 10, 10);
+        panel.add(new JLabel(labelText), gbcLabel);
+
+        GridBagConstraints gbcField = new GridBagConstraints();
+        gbcField.gridx = 1;
+        gbcField.gridy = row;
+        gbcField.anchor = GridBagConstraints.WEST;
+        gbcField.insets = new Insets(10, 10, 10, 10);
+        panel.add(field, gbcField);
     }
     
 	// 아이디 중복 체크 메소드
@@ -537,6 +574,74 @@ public class SignUp extends JFrame implements ActionListener {
         } catch (SQLException ex) {
             ex.printStackTrace();
             JOptionPane.showMessageDialog(this, "아이디 확인 중 오류가 발생했습니다.", "오류", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+	// 닉네임 중복 체크 메소드
+    private void checkNicknameDuplication() {
+        String inputNickname = nicknameTf.getText(); // nicknameTf는 닉네임을 입력받는 텍스트 필드
+        if (inputNickname.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "닉네임을 입력하세요.", "닉네임 입력 오류", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        try {
+            Connection conn = lp.getConnection();
+            String query = "SELECT nickname FROM user_info WHERE nickname = ?";
+            PreparedStatement pstmt = conn.prepareStatement(query);
+            pstmt.setString(1, inputNickname);
+
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                JOptionPane.showMessageDialog(this, "이미 사용 중인 닉네임입니다.", "중복된 닉네임", JOptionPane.ERROR_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, "사용 가능한 닉네임입니다.", "닉네임 사용 가능", JOptionPane.INFORMATION_MESSAGE);
+            }
+
+            rs.close();
+            pstmt.close();
+            conn.close();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "닉네임 확인 중 오류가 발생했습니다.", "오류", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    
+    private int calculatePasswordStrength(String password) {
+        int strength = 0;
+
+        // 비밀번호 길이 확인 (8자 이상)
+        if (password.length() >= 8) {
+            strength += 25;
+        }
+
+        // 대문자 포함 여부
+        if (Pattern.compile("[A-Z]").matcher(password).find()) {
+            strength += 25;
+        }
+
+        // 숫자 포함 여부
+        if (Pattern.compile("[0-9]").matcher(password).find()) {
+            strength += 25;
+        }
+
+        // 특수문자 포함 여부
+        if (Pattern.compile("[!@#$%^&*(),.?\":{}|<>]").matcher(password).find()) {
+            strength += 25;
+        }
+
+        return strength;
+    }
+
+    private String getStrengthText(int strength) {
+        if (strength == 100) {
+            return "Strong";
+        } else if (strength >= 75) {
+            return "Medium";
+        } else if (strength >= 50) {
+            return "Weak";
+        } else {
+            return "Very Weak";
         }
     }
     

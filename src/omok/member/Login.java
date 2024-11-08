@@ -1,25 +1,9 @@
 package omok.member;
 
-import java.awt.Font;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.GridLayout;
-import java.awt.Insets;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JPasswordField;
-import javax.swing.JTextField;
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+import javax.swing.*;
 
 public class Login extends JFrame implements ActionListener {
     // GUI 컴포넌트
@@ -29,13 +13,19 @@ public class Login extends JFrame implements ActionListener {
     JButton loginButton;
 
     Font font = new Font("회원가입", Font.BOLD, 40);
+    
+    private DBConnection lp; // 데이터베이스 연결 객체
+    
+    private Runnable loginSuccessCallback;
+    // 정적 필드 추가 - 로그인한 사용자 ID 저장
+    private static String loggedInUserId;
 
     // 생성자
     public Login() {
         // JFrame 설정
         setTitle("Login Application");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // 닫기 버튼 동작 설정
-        setSize(1500, 1000); // 프레임 크기 설정
+        setSize(1000, 700); // 프레임 크기 설정
 
         mainPanel = new JPanel();
         mainPanel.setLayout(new GridLayout(5, 1)); // 패널 레이아웃 설정
@@ -49,30 +39,30 @@ public class Login extends JFrame implements ActionListener {
         gridBagidInfo.setBorder(BorderFactory.createEmptyBorder(25, 25, 25, 25));
         GridBagConstraints c = new GridBagConstraints();
 
-		JLabel idLabel = new JLabel(" 아이디 : ");
-		c.fill = GridBagConstraints.HORIZONTAL;
-		c.gridx = 0;
-		c.gridy = 0;
-		gridBagidInfo.add(idLabel, c);
+        JLabel idLabel = new JLabel(" 아이디 : ");
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.gridx = 0;
+        c.gridy = 0;
+        gridBagidInfo.add(idLabel, c);
 
-		idTextField = new JTextField(15);
-		c.insets = new Insets(0, 5, 0, 0);
-		c.gridx = 1;
-		c.gridy = 0;
-		gridBagidInfo.add(idTextField, c);
+        idTextField = new JTextField(15);
+        c.insets = new Insets(0, 5, 0, 0);
+        c.gridx = 1;
+        c.gridy = 0;
+        gridBagidInfo.add(idTextField, c);
 
-		JLabel passLabel = new JLabel(" 비밀번호 : ");
-		c.fill = GridBagConstraints.HORIZONTAL;
-		c.gridx = 0;
-		c.gridy = 1;
-		c.insets = new Insets(20, 0, 0, 0);
-		gridBagidInfo.add(passLabel, c);
+        JLabel passLabel = new JLabel(" 비밀번호 : ");
+        c.fill = GridBagConstraints.HORIZONTAL;
+        c.gridx = 0;
+        c.gridy = 1;
+        c.insets = new Insets(20, 0, 0, 0);
+        gridBagidInfo.add(passLabel, c);
 
-		passTextField = new JPasswordField(15);
-		c.insets = new Insets(20, 5, 0, 0);
-		c.gridx = 1;
-		c.gridy = 1;
-		gridBagidInfo.add(passTextField, c);
+        passTextField = new JPasswordField(15);
+        c.insets = new Insets(20, 5, 0, 0);
+        c.gridx = 1;
+        c.gridy = 1;
+        gridBagidInfo.add(passTextField, c);
 
         // 로그인 버튼 추가
         loginButton = new JButton("로그인");
@@ -94,31 +84,52 @@ public class Login extends JFrame implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        // 로그인 버튼 클릭 시 동작
         if (e.getSource() == loginButton) {
             String id = idTextField.getText();
             String pass = new String(passTextField.getPassword());
 
-            // 데이터베이스 연결 및 로그인 확인 로직
-            try (Connection conn = DBConnection.getConnection(); // 실제 연결 필요
-                 PreparedStatement pstmt = conn.prepareStatement(
-                     "SELECT password FROM user_info WHERE id = ? AND password = ?")) {
-
+            lp = new DBConnection();
+            try (Connection conn = lp.getConnection();
+                 PreparedStatement pstmt = conn.prepareStatement("SELECT password FROM user_info WHERE id = ?")) {
+                 
                 pstmt.setString(1, id);
-                pstmt.setString(2, pass);
-                
                 ResultSet rset = pstmt.executeQuery();
 
-                if (rset != null && rset.next() && pass.equals(rset.getString(1))) {
-                    JOptionPane.showMessageDialog(this, "Login Success", "로그인 성공", JOptionPane.INFORMATION_MESSAGE);
+                if (rset.next()) {
+                    String dbPassword = rset.getString("password");
+                    if (dbPassword.equals(pass)) {
+                        JOptionPane.showMessageDialog(this, "로그인 성공", "로그인 성공", JOptionPane.INFORMATION_MESSAGE);
+
+                        // 로그인 성공 시 로그인한 사용자 ID를 저장
+                        loggedInUserId = id;
+                        
+                        // 로그인된 사용자 ID 로그로 확인
+                        System.out.println("로그인된 사용자 ID: " + loggedInUserId);
+
+                        dispose();
+
+                        if (loginSuccessCallback != null) {
+                            loginSuccessCallback.run(); // GameStartScreen으로 돌아가기
+                        }
+                    } else {
+                        JOptionPane.showMessageDialog(this, "로그인 실패", "로그인 실패", JOptionPane.ERROR_MESSAGE);
+                    }
                 } else {
-                    JOptionPane.showMessageDialog(this, "Login Failed", "로그인 실패", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "로그인 실패", "로그인 실패", JOptionPane.ERROR_MESSAGE);
                 }
             } catch (SQLException ex) {
-                JOptionPane.showMessageDialog(this, "Login Failed", "로그인 실패", JOptionPane.ERROR_MESSAGE);
-                System.out.println("SQLException: " + ex);
+                JOptionPane.showMessageDialog(this, "로그인 실패", "로그인 실패", JOptionPane.ERROR_MESSAGE);
             }
         }
+    }
+    
+    // 정적 메서드: 로그인된 사용자 ID 반환
+    public static String getLoggedInUserId() {
+        return loggedInUserId;
+    }
+
+    public void setLoginSuccessCallback(Runnable callback) {
+        this.loginSuccessCallback = callback;
     }
 
     // 메인 메서드
