@@ -13,6 +13,7 @@ import java.util.regex.*;
 import omok.member.DBConnection;
 import omok.member.ProfilePictureSelector;
 import test.additional.ImageCropper;
+import test.api.ApiExplorer;
 
 public class SignUp extends JFrame implements ActionListener {
     // 패널 컴포넌트

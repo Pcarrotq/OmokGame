@@ -1,6 +1,6 @@
 // 과학기술정보통신부 우정사업본부_우편번호 정보조회
 
-package test.member;
+package test.api;
 
 import javax.swing.*;
 import java.awt.*;
@@ -16,6 +16,9 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
+
+import test.member.SignUp;
+
 import org.w3c.dom.Element;
 
 public class ApiExplorer extends JFrame {
