@@ -1,8 +1,8 @@
-package test.admin;
+package omok.admin;
 
 import javax.swing.*;
 
-import test.main.GameStartScreen;
+import omok.main.GameStartScreen;
 
 import java.awt.Dimension;
 import java.awt.Font;

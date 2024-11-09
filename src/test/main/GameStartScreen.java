@@ -6,6 +6,7 @@ import test.additional.CharacterSelectionScreen;
 import test.member.EditMember;
 import test.game.GUI;
 import test.member.*;
+import test.admin.*;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -20,8 +21,11 @@ public class GameStartScreen extends JFrame {
 	private JTextArea weatherTextArea;
 	private DBConnection dbConnection = new DBConnection();  // DB 연결 객체
 	private String userId = Login.getLoggedInUserId();  // 로그인된 사용자 ID 가져오기
+	private static GameStartScreen instance;
 	
     public GameStartScreen() {
+    	instance = this;
+    	
         // JFrame 설정
         setTitle("게임 시작 화면");
         setSize(1500, 1000);
@@ -162,6 +166,20 @@ public class GameStartScreen extends JFrame {
         });
         mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
         mainPanel.add(settingsButton);
+        
+        // 관리자 설정 버튼
+        JButton adminSettingsButton = new JButton("관리자 설정");
+        adminSettingsButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        adminSettingsButton.setMaximumSize(new Dimension(100, 30));
+        adminSettingsButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // 관리자 대시보드 창 열기
+                new AdminDashboard();
+            }
+        });
+        mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
+        mainPanel.add(adminSettingsButton);
 
         // 로그아웃 버튼
         JButton logoutButton = new JButton("로그아웃");
@@ -418,6 +436,12 @@ public class GameStartScreen extends JFrame {
         
         // 도시에 대한 정보가 없다면 기본적으로 첫 번째 단어 반환
         return addressParts[0];
+    }
+    
+    public static void showMainScreenStatic() {
+        if (instance != null) {
+            instance.showMainScreen();
+        }
     }
     
     public JPanel mainPanel() {

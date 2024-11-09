@@ -3,15 +3,14 @@ package test.game;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.net.Socket;
+
 import javax.swing.*;
 import javax.swing.text.*;
 
-import omok.game.*;
-
 import test.additional.EmojiMap;
 import test.main.GameStartScreen;
-import test.personalChat.Server;
-import test.personalChat.ServerSocketThread;
 
 @SuppressWarnings("serial")
 public class GUI extends JPanel {
@@ -30,9 +29,6 @@ public class GUI extends JPanel {
     private JLabel player2Label;
     private JLabel turnDisplay;
     private EmojiMap emojiMap;
-    
-    private Server server;
-    private ServerSocketThread serverThread;
 
     public GUI(String title) {
         setLayout(new BorderLayout());
@@ -131,7 +127,7 @@ public class GUI extends JPanel {
         });
     }
 
-    public void appendMessage(String message) {
+    private void appendMessage(String message) {
         try {
             if (txtDisplay == null) {
                 txtDisplay = getTxtDisplay();
@@ -206,9 +202,7 @@ public class GUI extends JPanel {
         if (btnSend == null) {
             btnSend = new JButton("전송");
             btnSend.addActionListener(e -> {
-                String message = txtInput.getText();
-                serverThread.sendMessage(message); // 서버에 메시지 전송
-                appendMessage("You: " + message);
+                appendMessage(txtInput.getText());
                 txtInput.setText("");
             });
         }
