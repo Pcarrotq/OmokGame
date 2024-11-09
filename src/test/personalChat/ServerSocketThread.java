@@ -1,17 +1,17 @@
-package test1.chattingServer;
+package test.personalChat;
 
 import java.io.*;
 import java.net.Socket;
 
 public class ServerSocketThread extends Thread {
 	Socket socket;
-	ChatServer server;
+	Server server;
 	BufferedReader in; // 입력 담당 클래스
 	PrintWriter out; // 출력 담당 클래스
 	String name;
 	String threadName;
 	
-	public ServerSocketThread(ChatServer server, Socket socket) {
+	public ServerSocketThread(Server server, Socket socket) {
 		this.server = server;
 		this.socket = socket;
 		threadName = super.getName(); // Thread 이름을 얻어옴

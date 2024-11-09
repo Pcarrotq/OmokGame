@@ -1,15 +1,15 @@
-package test1.chattingServer;
+package test.personalChat;
 
 import java.io.IOException;
 import java.net.*;
 import java.util.*;
 
-public class ChatServer {
+public class Server {
 	ServerSocket serverSocket;
 	Socket socket;
 	List<Thread> list; // ServerSocketThread 객체 저장
 	
-	public ChatServer() {
+	public Server() {
 		list = new ArrayList<Thread>();
 		System.out.println("서버가 시작되었습니다.");
 	}

@@ -18,11 +18,13 @@ public class GUI extends JPanel {
     private JPanel pSouth;
     private JTextField txtInput;
     private JButton btnSend;
-    private JButton btnExit;  
-    private JButton btnEmoji; 
-    private JLabel player1Profile;  
-    private JLabel player1Label;    
-    private JLabel turnDisplay;  
+    private JButton btnExit;
+    private JButton btnEmoji;
+    private JLabel player1Profile;
+    private JLabel player1Label;
+    private JLabel player2Profile;
+    private JLabel player2Label;
+    private JLabel turnDisplay;
     private EmojiMap emojiMap;
 
     public GUI(String title) {
@@ -65,6 +67,17 @@ public class GUI extends JPanel {
         player1Panel.add(player1Label, BorderLayout.NORTH);
         player1Panel.add(player1Profile, BorderLayout.CENTER);
         profilePanel.add(player1Panel);
+        
+        JPanel player2Panel = new JPanel(new BorderLayout());
+        player2Label = new JLabel("Opponent", JLabel.CENTER);
+        player2Label.setFont(new Font("Serif", Font.BOLD, 16));
+        player2Profile = new JLabel();
+        player2Profile.setHorizontalAlignment(JLabel.CENTER);
+        player2Profile.setVerticalAlignment(JLabel.CENTER);
+        player2Profile.setPreferredSize(new Dimension(150, 150));
+        player2Panel.add(player2Label, BorderLayout.NORTH);
+        player2Panel.add(player2Profile, BorderLayout.CENTER);
+        profilePanel.add(player2Panel);
 
         bottomPanel.add(profilePanel, BorderLayout.NORTH);
         emojiMap = new EmojiMap();
