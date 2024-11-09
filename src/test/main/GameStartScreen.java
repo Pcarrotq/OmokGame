@@ -14,8 +14,8 @@ import test.game.GUI;
 import test.member.DBConnection;
 import test.member.Login;
 import test.member.SignUp;
-import test.retouch.editInfo.EditMember;
-import test.retouch.ui.CharacterSelectionScreen;
+import test.member.EditMember;
+import test.additional.CharacterSelectionScreen;
 import test.admin.*;
 
 public class GameStartScreen extends JFrame {

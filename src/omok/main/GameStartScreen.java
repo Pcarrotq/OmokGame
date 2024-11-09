@@ -3,7 +3,7 @@ package omok.main;
 import javax.swing.*;
 
 import omok.additional.CharacterSelectionScreen;
-import omok.additional.EditMember;
+import omok.member.EditMember;
 import omok.game.GUI;
 import omok.member.*;
 

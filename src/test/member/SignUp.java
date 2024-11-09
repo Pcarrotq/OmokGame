@@ -12,7 +12,7 @@ import java.util.regex.*;
 
 import omok.member.DBConnection;
 import omok.member.ProfilePictureSelector;
-import test.retouch.ui.ImageCropper;
+import test.additional.ImageCropper;
 
 public class SignUp extends JFrame implements ActionListener {
     // 패널 컴포넌트

@@ -11,6 +11,7 @@ import java.io.*;
 import java.util.regex.*;
 
 import omok.additional.ImageCropper;
+import omok.api.ApiExplorer;
 import omok.member.*;
 
 public class SignUp extends JFrame implements ActionListener {
