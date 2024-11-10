@@ -1,4 +1,4 @@
-package test.personalChat;
+package test.gameServer;
 
 import java.io.IOException;
 import java.net.*;
