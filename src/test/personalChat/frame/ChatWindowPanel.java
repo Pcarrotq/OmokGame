@@ -73,7 +73,7 @@ public class ChatWindowPanel extends JPanel {
 
 	private JButton showSendButton() {
 	    JButton sendButton = new JButton("전송");
-	    sendButton.setBackground(Color.DARK_GRAY); // 예시 배경색
+	    sendButton.setBackground(Color.GRAY); // 예시 배경색
 	    sendButton.setFont(new Font("맑은 고딕", Font.BOLD, 14));
 	    sendButton.setFocusPainted(false);
 	    sendButton.setBounds(320, 500, 68, 65);

@@ -11,7 +11,7 @@ import javax.swing.*;
 public class IndexPanel extends JPanel {
     private JLabel jLabel;
     public static JButton userProfileButton;
-    public static ArrayList<ChatWindowPanel> chatPanelName = new ArrayList<>();  
+    public static ArrayList<ChatWindowPanel> chatPanelName = new ArrayList<>();
 
     public IndexPanel() {
         setLayout(null);
@@ -21,16 +21,6 @@ public class IndexPanel extends JPanel {
         
         meanFriendProfileTitle("Friend List");
         showFriendList();
-    }
-    
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame("KevotingTalk - Friend List");
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.setSize(400, 600);
-            frame.add(new IndexPanel());
-            frame.setVisible(true);
-        });
     }
 
     private void meanMyProfileTitle(String text) {
@@ -45,8 +35,7 @@ public class IndexPanel extends JPanel {
         userProfileButton.setBounds(30, 120, 325, 80);
         userProfileButton.setHorizontalAlignment(SwingConstants.LEFT);
         
-        // 프로필을 나타내기 위한 단순 도형 추가
-        userProfileButton.setIcon(new ProfileIcon());
+        userProfileButton.setIcon(new ProfileIcon("User"));
         add(userProfileButton);
 
         userProfileButton.addActionListener(new ActionListener() {
@@ -56,7 +45,7 @@ public class IndexPanel extends JPanel {
                     // 이미 대화 중인 상태일 경우 아무 작업도 수행하지 않음
                 } else {
                     userProfileButton.setText(userProfileButton.getText() + "       대화 중..");
-                    ChatWindowPanel c = new ChatWindowPanel(new ProfileIcon(), "User Name");  // 직접 사용자 이름 설정
+                    ChatWindowPanel c = new ChatWindowPanel(new ProfileIcon("User"), "User Name");  // 직접 사용자 이름 설정
                     new ChatWindowFrame(c, "User Name");
                     chatPanelName.add(c);
                 }
@@ -92,27 +81,5 @@ public class IndexPanel extends JPanel {
         Graphics2D g2 = (Graphics2D) g;
         Line2D lin = new Line2D.Float(30, 210, 350, 210);
         g2.draw(lin);
-    }
-
-    // 프로필 아이콘을 나타내는 내부 클래스
-    private class ProfileIcon implements Icon {
-        @Override
-        public void paintIcon(Component c, Graphics g, int x, int y) {
-            Graphics2D g2d = (Graphics2D) g;
-            g2d.setColor(Color.LIGHT_GRAY);
-            g2d.fillOval(x + 5, y + 5, 50, 50); // 동그란 프로필 모양
-            g2d.setColor(Color.BLACK);
-            g2d.drawString("User", x + 20, y + 40); // 프로필 내에 "User" 텍스트 추가
-        }
-
-        @Override
-        public int getIconWidth() {
-            return 60;
-        }
-
-        @Override
-        public int getIconHeight() {
-            return 60;
-        }
     }
 }
