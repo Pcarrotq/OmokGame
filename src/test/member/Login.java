@@ -118,6 +118,7 @@ public class Login extends JFrame implements ActionListener {
 
                         // 로그인 성공 시 로그인한 사용자 ID를 저장
                         loggedInUserId = id;
+                        DBConnection.loggedInUserId = id;  // DBConnection에도 설정
                         
                         // 로그인된 사용자 ID 로그로 확인
                         System.out.println("로그인된 사용자 ID: " + loggedInUserId);

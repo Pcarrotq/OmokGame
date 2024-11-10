@@ -1,13 +1,11 @@
 package test.member;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
+import java.util.*;
 
 public class DBConnection {
     public static Connection dbConn;
+    public static String loggedInUserId;
     
     public static Connection getConnection() {
         Connection conn = null;
@@ -102,5 +100,62 @@ public class DBConnection {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+    
+    // 로그인한 사용자의 닉네임 가져오기
+    public String getNickname() {
+        String nickname = null;
+        String sql = "SELECT nickname FROM user_info WHERE id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, loggedInUserId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                nickname = rs.getString("nickname");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return nickname;
+    }
+    
+    // 특정 사용자 프로필 가져오기
+    public UserProfile getUserProfile() {
+        UserProfile userProfile = null;
+        String sql = "SELECT id, nickname, email, phone_number, profile_image FROM user_info WHERE id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, loggedInUserId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                String nickname = rs.getString("nickname");
+                String email = rs.getString("email");
+                String phoneNumber = rs.getString("phone_number");
+                byte[] profileImage = rs.getBytes("profile_image");
+                userProfile = new UserProfile(loggedInUserId, nickname, email, phoneNumber, profileImage);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return userProfile;
+    }
+
+    // 모든 사용자 목록 가져오기
+    public List<UserProfile> getAllUsers() {
+        List<UserProfile> users = new ArrayList<>();
+        String sql = "SELECT id, nickname, profile_image FROM user_info";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+            while (rs.next()) {
+                String id = rs.getString("id");
+                String nickname = rs.getString("nickname");
+                byte[] profileImage = rs.getBytes("profile_image");
+                users.add(new UserProfile(id, nickname, profileImage));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return users;
     }
 }

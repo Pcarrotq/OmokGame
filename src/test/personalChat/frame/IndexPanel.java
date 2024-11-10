@@ -1,11 +1,17 @@
 package test.personalChat.frame;
 
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.*;
 import java.awt.geom.Line2D;
-import java.util.ArrayList;
+import java.awt.image.BufferedImage;
+import java.util.*;
+import java.util.List;
+
+import javax.imageio.ImageIO;
+import java.io.ByteArrayInputStream;
 import javax.swing.*;
+import test.member.DBConnection;
+import test.member.UserProfile;
 
 @SuppressWarnings("serial")
 public class IndexPanel extends JPanel {
@@ -16,11 +22,17 @@ public class IndexPanel extends JPanel {
     public IndexPanel() {
         setLayout(null);
         
-        meanMyProfileTitle("My Profile");
-        meanMyProfile();
+        DBConnection db = new DBConnection();
+        UserProfile myProfile = db.getUserProfile();
+        List<UserProfile> allUsers = db.getAllUsers();
         
+        // My Profile 설정
+        meanMyProfileTitle("My Profile");
+        meanMyProfile(myProfile);
+        
+        // Friend List 설정
         meanFriendProfileTitle("Friend List");
-        showFriendList();
+        showFriendList(allUsers);
     }
 
     private void meanMyProfileTitle(String text) {
@@ -30,25 +42,36 @@ public class IndexPanel extends JPanel {
         add(jLabel);
     }
 
-    private void meanMyProfile() {
-        userProfileButton = new JButton("User Name");
-        userProfileButton.setBounds(30, 120, 325, 80);
-        userProfileButton.setHorizontalAlignment(SwingConstants.LEFT);
+    private void meanMyProfile(UserProfile profile) {
+        // 로그인한 사용자의 닉네임을 가져와 설정
+        String nickname = profile.getNickname();
         
-        userProfileButton.setIcon(new ProfileIcon("User"));
+        userProfileButton = new JButton(nickname); // 로그인한 사용자의 닉네임으로 버튼 텍스트 설정
+        userProfileButton.setBounds(30, 120, 325, 80); // 버튼 위치 및 크기 설정
+        userProfileButton.setHorizontalAlignment(SwingConstants.LEFT); // 텍스트 왼쪽 정렬
+        userProfileButton.setIconTextGap(10); // 아이콘과 텍스트 사이 간격 설정
+
+        // 프로필 이미지 강제 크기 조정
+        if (profile.getProfileImage() != null) {
+            try {
+                BufferedImage originalImage = ImageIO.read(new ByteArrayInputStream(profile.getProfileImage()));
+                Image scaledImage = originalImage.getScaledInstance(50, 50, Image.SCALE_SMOOTH); // My Profile용 크기 설정 (50x50)
+                userProfileButton.setIcon(new ImageIcon(scaledImage));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else {
+            userProfileButton.setIcon(new ProfileIcon(nickname)); // 기본 아이콘 사용
+        }
+
         add(userProfileButton);
 
-        userProfileButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (userProfileButton.getText().contains("대화 중..")) {
-                    // 이미 대화 중인 상태일 경우 아무 작업도 수행하지 않음
-                } else {
-                    userProfileButton.setText(userProfileButton.getText() + "       대화 중..");
-                    ChatWindowPanel c = new ChatWindowPanel(new ProfileIcon("User"), "User Name");  // 직접 사용자 이름 설정
-                    new ChatWindowFrame(c, "User Name");
-                    chatPanelName.add(c);
-                }
+        userProfileButton.addActionListener(e -> {
+            if (!userProfileButton.getText().contains("대화 중")) {
+                userProfileButton.setText(nickname + "       대화 중..");
+                ChatWindowPanel chatPanel = new ChatWindowPanel(new ProfileIcon(nickname), nickname);
+                new ChatWindowFrame(chatPanel, nickname);
+                chatPanelName.add(chatPanel);
             }
         });
     }
@@ -67,13 +90,61 @@ public class IndexPanel extends JPanel {
         add(jLabel);
     }
 
-    private void showFriendList() {
-        FriendListPanel jpanel = new FriendListPanel();
-        JScrollPane scroller = new JScrollPane(jpanel);
-        scroller.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
-        scroller.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        scroller.setBounds(30, 250, 325, 300);
-        add(scroller);
+    private void showFriendList(List<UserProfile> allUsers) {
+        JPanel friendListPanel = new JPanel();
+        friendListPanel.setLayout(new BoxLayout(friendListPanel, BoxLayout.Y_AXIS));
+
+        for (UserProfile user : allUsers) {
+            if (!user.getId().equals(DBConnection.loggedInUserId)) {
+                String nickname = user.getNickname();
+                JButton friendButton = new JButton(nickname);
+                friendButton.setHorizontalAlignment(SwingConstants.LEFT); // 텍스트 왼쪽 정렬
+                friendButton.setIconTextGap(10); // 아이콘과 텍스트 사이의 간격 설정
+
+                // 프로필 이미지 강제 크기 조정
+                if (user.getProfileImage() != null) {
+                    try {
+                        BufferedImage originalImage = ImageIO.read(new ByteArrayInputStream(user.getProfileImage()));
+                        Image scaledImage = originalImage.getScaledInstance(24, 24, Image.SCALE_SMOOTH); // 더 작은 크기로 설정 (24x24)
+                        friendButton.setIcon(new ImageIcon(scaledImage));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    friendButton.setIcon(new ProfileIcon(nickname)); // 기본 아이콘 사용
+                }
+
+                // friendButton의 너비와 높이 설정
+                friendButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 60)); // 버튼 높이를 60으로 설정
+                friendButton.setPreferredSize(new Dimension(friendListPanel.getWidth(), 60)); // 너비와 높이 설정
+
+                // 버튼 클릭 시 채팅 창 열기
+                friendButton.addActionListener(e -> {
+                    if (!friendButton.getText().contains("대화 중")) {
+                        friendButton.setText(nickname + "       대화 중..");
+
+                        // ChatWindowPanel을 열고, 창이 닫힐 때 상태 초기화
+                        ChatWindowPanel chatPanel = new ChatWindowPanel(new ProfileIcon(nickname), nickname);
+                        ChatWindowFrame chatWindow = new ChatWindowFrame(chatPanel, nickname);
+                        
+                        chatWindow.addWindowListener(new java.awt.event.WindowAdapter() {
+                            @Override
+                            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                                friendButton.setText(nickname); // "대화 중" 제거
+                            }
+                        });
+                        
+                        chatPanelName.add(chatPanel);
+                    }
+                });
+
+                friendListPanel.add(friendButton);
+            }
+        }
+
+        JScrollPane friendListScrollPane = new JScrollPane(friendListPanel);
+        friendListScrollPane.setBounds(30, 250, 325, 300);
+        add(friendListScrollPane);
     }
 
     public void paint(Graphics g) {
