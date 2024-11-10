@@ -1,108 +1,136 @@
 package test.personalChat.server;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
 import test.personalChat.frame.ChatWindowPanel;
 
 public class ServerSocket {
-	Socket socket;
+    private Socket socket;
+    private ChatWindowPanel chatWindowPanel;
+    private String userName;
+    private java.net.ServerSocket serverSocket;
+    private Socket clientSocket;
 
-	public void startClient() {
-		Thread thread = new Thread(()->{
-			try {
-				socket = new Socket(); // 소켓 생성
-				socket.connect(new InetSocketAddress("localhost", 5000)); // 연결 요청
-				System.out.println("연결 요청");
-				// -> socket 생성 및 연결 요청
-			} catch (IOException e) {
-				System.out.println("서버 통신 안됨");
-				e.printStackTrace();
-			}
-			receive();
-		});
-	    
-		thread.start();
-	
-	}
+    public void setChatWindowPanel(ChatWindowPanel chatWindowPanel) {
+        this.chatWindowPanel = chatWindowPanel;
+    }
 
-	public void stopClient() {
-		try {
-			if (socket != null && !socket.isClosed()) {
-				socket.close();
-			}
-		} catch (IOException e) {
-		}
-	}
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
 
-	// 서버에서 보낸 데이터를 받는 역할
-	public void receive() {
-		while (true) {
-			// 버퍼 생성
-			byte[] recvBuffer = new byte[1024];
-			// 서버로부터 받기 위한 입력 스트림 뚫음
-			InputStream inputStream;
-			try {
-				inputStream = socket.getInputStream();
-				int readByteCount = inputStream.read(recvBuffer);
-				if (readByteCount == -1) {
-					throw new IOException();
-				}
-				Message message = toMessage(recvBuffer, Message.class);
-				ChatWindowPanel.displayComment(message);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-	}
+    public void startClient() {
+        Thread thread = new Thread(() -> {
+            try {
+                socket = new Socket(); // 소켓 생성
+                socket.connect(new InetSocketAddress("localhost", 5000)); // 연결 요청
+                System.out.println("연결 요청");
+            } catch (IOException e) {
+                System.out.println("서버 통신 안됨");
+                e.printStackTrace();
+            }
+            receive();
+        });
 
-	private Message toMessage(byte[] recvBuffer, Class<Message> class1) {
-		Object obj = null;
-		try {
-			ByteArrayInputStream bis = new ByteArrayInputStream(recvBuffer);
-			ObjectInputStream ois = new ObjectInputStream(bis);
-			obj = ois.readObject();
-		} catch (Exception e) {
-		}
-		return class1.cast(obj);
-	}
+        thread.start();
+    }
 
-	// 서버로 메시지를 보내는 역할
-	public void send(Message messageInfo) {
-		Thread thread = new Thread(()->{
-		// 객체를 byte array로 변환
-		byte[] bytes = null;
-		ByteArrayOutputStream bos = new ByteArrayOutputStream(); // 바이트 배열에 데이터를 입출력하는데 사용되는 스트림. 데이터를 임시로 바이트 배열에 담아서 변환 등 작업 사용
-		try {
-			ObjectOutputStream oos = new ObjectOutputStream(bos); // 객체를 직렬화.
-			oos.writeObject(messageInfo); // 객체를 직렬화하기 위해 메소드 사용
-			oos.flush(); // 버퍼에 잔류하는 모든 바이트 출력
-			oos.close();
-			bos.close();
-			bytes = bos.toByteArray(); // byteArray로 변환
-		} catch (IOException e) {
-		}
+    public void stopClient() {
+        try {
+            if (socket != null && !socket.isClosed()) {
+                socket.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
-		// message객체를 byte로 변환 후 소켓을 통해 보냄
-		try {
-			byte[] data = bytes;
-			OutputStream outputStream = socket.getOutputStream(); // 출력 스트림 얻기.
-			outputStream.write(data);
-			outputStream.flush();
-			System.out.println("서버로 보내기 완료!");
-		} catch (IOException e) {
-			System.out.println("서버로 통신 안됨");
-			e.printStackTrace();
-		}
-		});
-		
-		thread.start();
-	}
+    // 서버에서 보낸 데이터를 받는 역할
+    public void receive() {
+        while (true) {
+            byte[] recvBuffer = new byte[1024];
+            try {
+                InputStream inputStream = socket.getInputStream();
+                int readByteCount = inputStream.read(recvBuffer);
+                if (readByteCount == -1) {
+                    throw new IOException();
+                }
+                // 받은 데이터를 문자열로 변환하고 분해하여 사용
+                String receivedMessage = new String(recvBuffer, 0, readByteCount, "UTF-8");
+                String[] parts = receivedMessage.split(":", 3);
+                if (parts.length == 3) {
+                    String sender = parts[0];
+                    String receiver = parts[1];
+                    String message = parts[2];
+                    boolean isUserMessage = sender.equals(userName);
+                    if (chatWindowPanel != null) {
+                        chatWindowPanel.displayComment(message, isUserMessage); // 메시지 표시
+                    }
+                } else {
+                    System.out.println("잘못된 메시지 형식: " + receivedMessage);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                break;
+            }
+        }
+    }
+
+    // 서버로 메시지를 보내는 역할
+    public void send(String sender, String receiver, String message) {
+        Thread thread = new Thread(() -> {
+            // 메시지를 문자열 형식으로 변환하여 전송
+            String formattedMessage = sender + ":" + receiver + ":" + message;
+            try {
+                OutputStream outputStream = socket.getOutputStream();
+                outputStream.write(formattedMessage.getBytes("UTF-8"));
+                outputStream.flush();
+                System.out.println("서버로 보내기 완료!");
+            } catch (IOException e) {
+                System.out.println("서버로 통신 안됨");
+                e.printStackTrace();
+            }
+        });
+
+        thread.start();
+    }
+    
+    // 서버 소켓을 특정 포트에 바인딩
+    public void bind(InetSocketAddress address) throws IOException {
+        if (serverSocket == null) {
+            serverSocket = new java.net.ServerSocket();
+        }
+        serverSocket.bind(address);
+        System.out.println("서버가 " + address.getPort() + " 포트에 바인딩되었습니다.");
+    }
+
+    // 클라이언트 연결을 수락
+    public Socket accept() throws IOException {
+        if (serverSocket != null) {
+            clientSocket = serverSocket.accept();
+            System.out.println("클라이언트 연결 수락: " + clientSocket.getRemoteSocketAddress());
+            return clientSocket;
+        } else {
+            throw new IOException("서버 소켓이 바인딩되지 않았습니다.");
+        }
+    }
+
+    // 서버 소켓이 닫혀 있는지 확인
+    public boolean isClosed() {
+        return serverSocket == null || serverSocket.isClosed();
+    }
+
+    // 서버 소켓을 닫음
+    public void close() throws IOException {
+        if (serverSocket != null && !serverSocket.isClosed()) {
+            serverSocket.close();
+            System.out.println("서버 소켓이 닫혔습니다.");
+        }
+        if (clientSocket != null && !clientSocket.isClosed()) {
+            clientSocket.close();
+            System.out.println("클라이언트 소켓이 닫혔습니다.");
+        }
+    }
 }

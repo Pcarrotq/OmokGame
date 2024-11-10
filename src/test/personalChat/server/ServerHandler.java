@@ -6,150 +6,123 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public class ServerHandler {
-	ExecutorService executorService; // 스레드풀인 ExecutorService 선언
-	ServerSocket serverSocket; // 클라이언트 연결 수락
-	List<Client> connections = new Vector<Client>(); // 연결되어있는 클라이언트들
+    private final ExecutorService executorService = Executors.newFixedThreadPool(10);
+    private ServerSocket serverSocket;
+    private final List<Client> connections = new Vector<>();
 
-	public void startServer() {
-		ExecutorService threadPool = new ThreadPoolExecutor(10, // 코어 스레드 개수
-				100, // 최대 스레드 개수
-				120L, // 놀고 있는 시간
-				TimeUnit.SECONDS, // 놀고 있는 시간 단위
-				new SynchronousQueue<Runnable>() // 작업 큐
-		); // 초기 스레드 개수 0개,
-	
-		executorService = threadPool;
-		
-		try {
-			serverSocket = new ServerSocket();
-			serverSocket.bind(new InetSocketAddress(5000));
-			System.out.println("서버 연결 기다림");
-			// -> serverSocket 생성 및 포트 바인딩
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	
-		// 연결을 수락하는 코드
-		Runnable runnable = new Runnable() { // 수락 작업 생성
-			@Override
-			public void run() {
-				while (true) {
-					try {
-						Socket socket = serverSocket.accept(); // 클라이언트 연결 수락, client와 통신할 socket 리
-						System.out.println("연결 수락: " + socket.getRemoteSocketAddress() + ": " + Thread.currentThread().getName());
-						Client client = new Client(socket); // 클라이언트 객체에 저장.
-						connections.add(client);
-						System.out.println("연결 개수: " + connections.size());
-					} catch (IOException e) {
-						if (!serverSocket.isClosed()) { // serverSocket이 닫혀있지 않을 경우
-							stopServer();
-						}
-						break;
-					}
-				}
-			}
-		};
-		
-		executorService.submit(runnable); // 스레드풀에서 처리.
-	}
+    public void startServer() {
+        try {
+            serverSocket = new ServerSocket();
+            serverSocket.bind(new InetSocketAddress(5000));
+            System.out.println("서버 연결 대기 중...");
 
-	public void stopServer() {
-		try {
-			Iterator<Client> iterator = connections.iterator(); // 모든 socket 닫기.
-			while (iterator.hasNext()) {
-				Client client = iterator.next();
-				client.socket.close();
-				iterator.remove();
-			}
-			if (serverSocket != null && !serverSocket.isClosed()) { // ServerSocket 닫기.
-				serverSocket.close();
-			}
-			if (executorService != null && !executorService.isShutdown()) { // ExecutorService 종료.
-				executorService.shutdown();
-			}
-		} catch (Exception e) {
-		}
-	}
+            // 클라이언트 연결을 수락하는 스레드
+            executorService.submit(() -> {
+                while (true) {
+                    try {
+                        Socket socket = serverSocket.accept();
+                        System.out.println("연결 수락: " + socket.getRemoteSocketAddress() + ": " + Thread.currentThread().getName());
+                        Client client = new Client(socket);
+                        connections.add(client);
+                        System.out.println("연결 개수: " + connections.size());
+                    } catch (IOException e) {
+                        if (!serverSocket.isClosed()) {
+                            stopServer();
+                        }
+                        break;
+                    }
+                }
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
-	class Client {
-		Socket socket;
-		String userName;
+    public void stopServer() {
+        try {
+            for (Client client : connections) {
+                client.close();
+            }
+            connections.clear();
 
-		Client(Socket socket) {
-			this.socket = socket;
-			receive();
-		}
+            if (serverSocket != null && !serverSocket.isClosed()) {
+                serverSocket.close();
+            }
+            executorService.shutdown();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
-		// 클라이언트의 데이터를 받는 메소드
-		void receive() {
-			Runnable runnable = new Runnable() {
-				@Override
-				public void run() {
-					byte[] byteArr = new byte[1024];
-					try {
-						while (true) {
-							InputStream inputStream = socket.getInputStream(); // 입력 스트림 얻기.
-							int readByteCount = inputStream.read(byteArr); // 데이터 받기, 배열에 저장, 바이트 수 리턴.
-							// 더 이상 입력 스트림으로부터 바이트 읽을 수 없다면 -1 리턴.
-							if (readByteCount == -1) {
-								throw new IOException();
-							}
-							Message ms = toObject(byteArr, Message.class); // 역직렬
-							System.out.println("요청처리: " + socket.getRemoteSocketAddress() + ": " + Thread.currentThread().getName());
-							userName = ms.getSendUserName();
-							System.out.println(userName + "qq");
-							send(byteArr); // 본인한테 보
-							for (Client client : connections) { // 모든 클라이언트에게 보냄
-								System.out.println(client.userName + "ss" + ms.getReceiveFriendName());
-								if (client.userName != null) {
-									if (client.userName.equals(ms.getReceiveFriendName()) && !ms.getSendUserName().equals(ms.getReceiveFriendName())) {
-										client.send(byteArr);
-									}
-								}
-							}
-						}
-					} catch (Exception e) {
-						try {
-							connections.remove(Client.this);
-							socket.close();
-						} catch (IOException e2) {
-						}
-					}
-				}
-			};
-			
-			executorService.submit(runnable);
-		}
+    private class Client {
+        private final Socket socket;
+        private String userName;
 
-		private Message toObject(byte[] byteArr, Class<Message> class1) {
-			Object obj = null;
-			try {
-				ByteArrayInputStream bis = new ByteArrayInputStream(byteArr);
-				ObjectInputStream ois = new ObjectInputStream(bis);
-				obj = ois.readObject();
-			} catch (Exception e) {
-			}
-			
-			return class1.cast(obj);
-		}
+        Client(Socket socket) {
+            this.socket = socket;
+            receive();
+        }
 
-		// 데이터를 보내는 메소드
-		void send(byte[] bytes) {
-			Runnable runnable = new Runnable() {
-				@Override
-				public void run() {
-					try {
-						OutputStream outputStream = socket.getOutputStream();
-						outputStream.write(bytes);
-						outputStream.flush();
-						System.out.println("서버에서 데이터 보냄");
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-				}
-			};
-			
-			executorService.submit(runnable);
-		}
-	}
+        void receive() {
+            executorService.submit(() -> {
+                byte[] buffer = new byte[1024];
+                try (InputStream inputStream = socket.getInputStream()) {
+                    while (true) {
+                        int readBytes = inputStream.read(buffer);
+                        if (readBytes == -1) throw new IOException("연결 끊김");
+
+                        String receivedMessage = new String(buffer, 0, readBytes, "UTF-8");
+                        String[] parts = receivedMessage.split(":", 3);
+                        if (parts.length == 3) {
+                            String sender = parts[0];
+                            String receiver = parts[1];
+                            String message = parts[2];
+                            userName = sender;
+
+                            System.out.println("요청 처리 중: " + socket.getRemoteSocketAddress() + ": " + Thread.currentThread().getName());
+
+                            send(receivedMessage); // 발신자에게 확인 메시지 전송
+
+                            for (Client client : connections) {
+                                if (client.userName != null && client.userName.equals(receiver) && !sender.equals(receiver)) {
+                                    client.send(receivedMessage);
+                                }
+                            }
+                        } else {
+                            System.out.println("잘못된 메시지 형식: " + receivedMessage);
+                        }
+                    }
+                } catch (IOException e) {
+                    System.out.println("클라이언트 연결 종료: " + socket.getRemoteSocketAddress());
+                    connections.remove(this);
+                    close();
+                }
+            });
+        }
+
+        void send(String message) {
+            executorService.submit(() -> {
+                try {
+                    OutputStream outputStream = socket.getOutputStream();
+                    outputStream.write(message.getBytes("UTF-8"));
+                    outputStream.flush();
+                    System.out.println("메시지 전송: " + message);
+                } catch (IOException e) {
+                    System.out.println("메시지 전송 실패");
+                    connections.remove(this);
+                    close();
+                }
+            });
+        }
+
+        void close() {
+            try {
+                if (!socket.isClosed()) {
+                    socket.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 }
