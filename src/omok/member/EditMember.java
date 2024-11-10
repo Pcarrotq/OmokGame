@@ -5,7 +5,6 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.sql.*;
-import omok.member.DBConnection;
 
 public class EditMember extends JFrame {
     // UI Components

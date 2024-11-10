@@ -4,10 +4,8 @@ import javax.swing.*;
 
 import omok.main.GameStartScreen;
 
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.*;
+import java.awt.event.*;
 
 public class AdminDashboard extends JFrame {
     public AdminDashboard() {

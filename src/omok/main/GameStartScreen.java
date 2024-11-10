@@ -5,7 +5,9 @@ import javax.swing.*;
 import omok.additional.CharacterSelectionScreen;
 import omok.game.GUI;
 import omok.member.*;
-import omok.admin.*;
+import omok.admin.AdminDashboard;
+import omok.main.GameStartScreen;
+import omok.personalChat.frame.IndexPanel;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -146,6 +148,24 @@ public class GameStartScreen extends JFrame {
         });
         mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
         mainPanel.add(startButton);
+        
+        JButton friendsButton = new JButton("친구");
+        friendsButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        friendsButton.setMaximumSize(new Dimension(100, 30));
+        friendsButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // IndexPanel을 새로운 창으로 열기
+                JFrame indexFrame = new JFrame("1 대 1 대화");
+                indexFrame.setSize(400, 600);
+                indexFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                indexFrame.add(new IndexPanel());
+                indexFrame.setLocationRelativeTo(null); // 화면 중앙에 창을 위치시킴
+                indexFrame.setVisible(true);
+            }
+        });
+        mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
+        mainPanel.add(friendsButton);
 
         // 개인 설정 버튼
         JButton settingsButton = new JButton("개인 설정");
