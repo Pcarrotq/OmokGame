@@ -1,4 +1,4 @@
-package test.personalChatEnum;
+package test.personalChat.enums;
 
 public enum AlignEnum {
 	LEFT("left","왼쪽"),
