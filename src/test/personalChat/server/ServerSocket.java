@@ -12,13 +12,6 @@ public class ServerSocket {
     private String userName;
     private java.net.ServerSocket serverSocket;
     private Socket clientSocket;
-    
-    // 서버에 연결하는 메서드
-    public void connect(InetSocketAddress address) throws IOException {
-        socket = new Socket(); // 새로운 소켓 생성
-        socket.connect(address); // 서버 주소에 연결
-        System.out.println("서버에 연결되었습니다: " + address);
-    }
 
     public void setChatWindowPanel(ChatWindowPanel chatWindowPanel) {
         this.chatWindowPanel = chatWindowPanel;
@@ -55,35 +48,53 @@ public class ServerSocket {
     }
 
     // 서버에서 보낸 데이터를 받는 역할
-    public String receive() {
-        byte[] recvBuffer = new byte[1024];
-        try {
-            InputStream inputStream = socket.getInputStream();
-            int readByteCount = inputStream.read(recvBuffer);
-            if (readByteCount == -1) {
-                throw new IOException();
+    public void receive() {
+        while (true) {
+            byte[] recvBuffer = new byte[1024];
+            try {
+                InputStream inputStream = socket.getInputStream();
+                int readByteCount = inputStream.read(recvBuffer);
+                if (readByteCount == -1) {
+                    throw new IOException();
+                }
+                // 받은 데이터를 문자열로 변환하고 분해하여 사용
+                String receivedMessage = new String(recvBuffer, 0, readByteCount, "UTF-8");
+                String[] parts = receivedMessage.split(":", 3);
+                if (parts.length == 3) {
+                    String sender = parts[0];
+                    String receiver = parts[1];
+                    String message = parts[2];
+                    boolean isUserMessage = sender.equals(userName);
+                    if (chatWindowPanel != null) {
+                        chatWindowPanel.displayComment(message, isUserMessage); // 메시지 표시
+                    }
+                } else {
+                    System.out.println("잘못된 메시지 형식: " + receivedMessage);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                break;
             }
-            return new String(recvBuffer, 0, readByteCount, "UTF-8");
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
         }
     }
 
     // 서버로 메시지를 보내는 역할
     public void send(String sender, String receiver, String message) {
-        new Thread(() -> {
+        Thread thread = new Thread(() -> {
+            // 메시지를 문자열 형식으로 변환하여 전송
             String formattedMessage = sender + ":" + receiver + ":" + message;
             try {
                 OutputStream outputStream = socket.getOutputStream();
                 outputStream.write(formattedMessage.getBytes("UTF-8"));
                 outputStream.flush();
-                System.out.println("서버로 메시지 전송 완료!");
+                System.out.println("서버로 보내기 완료!");
             } catch (IOException e) {
-                System.out.println("서버로 메시지 전송 실패");
+                System.out.println("서버로 통신 안됨");
                 e.printStackTrace();
             }
-        }).start();
+        });
+
+        thread.start();
     }
     
     // 서버 소켓을 특정 포트에 바인딩

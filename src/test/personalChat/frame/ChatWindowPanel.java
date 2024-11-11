@@ -1,38 +1,61 @@
 package test.personalChat.frame;
 
-import javax.swing.*;
-import javax.swing.text.*;
-
-import test.personalChat.enums.AlignEnum;
-import test.personalChat.server.ServerSocket;
-
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
+import java.awt.geom.Line2D;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
-public class ChatWindowPanel extends JPanel {
-    private String panelName;
-    private JTextArea textArea;
-    private JButton sendButton;
-    private JTextPane jtp;
-    private StyledDocument document;
-    private static String userName;
-    private ServerSocket serverSocket; // 서버 소켓 객체 추가
+import javax.swing.BorderFactory;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextPane;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.border.Border;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultStyledDocument;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.Style;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyleContext;
+import javax.swing.text.StyledDocument;
 
-    public ChatWindowPanel(Icon icon, String friendName, ServerSocket serverSocket) {
+import test.personalChat.frame.ChatWindowPanel;
+import test.personalChat.frame.IndexPanel;
+import test.personalChat.enums.AlignEnum;
+import test.personalChat.enums.*;
+
+@SuppressWarnings("serial")
+public class ChatWindowPanel extends JPanel {
+	private String panelName;
+	private JTextArea textArea;
+	private JButton sendButton;
+	private JButton imgFileButton;
+	private JTextPane jtp;
+	private StyledDocument document;
+	private static String userName;
+
+	public ChatWindowPanel(Icon icon, String friendName) {
         userName = "User";
         panelName = friendName;
-        this.serverSocket = serverSocket; // 서버 소켓 객체 초기화
-
+        
         setLayout(null);
         showFriendInfo(icon, friendName); // 친구 정보 표시
         writeMessageArea(); // 메시지 입력 영역 설정
         showContentArea(); // 메시지 출력 영역 설정
+
+        imgFileButton = showImgFileButton();
+        add(imgFileButton);
 
         sendButton = showSendButton();
         add(sendButton);
@@ -45,13 +68,22 @@ public class ChatWindowPanel extends JPanel {
                 if (!message.isEmpty()) {
                     displayComment(message, true);
                     textArea.setText(""); // 텍스트 입력창 초기화
-                    
-                    // 서버로 메시지 전송
-                    serverSocket.send(userName, panelName, message);
                 }
             }
         });
-    }
+	}
+	  
+	public void paint(Graphics g) {
+		super.paint(g);
+		Graphics2D g2 = (Graphics2D) g;
+
+		Line2D lin = new Line2D.Float(0, 81, 400, 81);
+		g2.draw(lin);
+		
+		Graphics2D g3 = (Graphics2D) g;
+		Line2D lin2 = new Line2D.Float(0, 458, 400, 458);
+		g3.draw(lin2);
+	}
 
     private void showFriendInfo(Icon icon, String friendName) {
         JLabel friendInfolabel = new JLabel(icon);
@@ -99,6 +131,7 @@ public class ChatWindowPanel extends JPanel {
     }
 
     public void displayComment(String message, boolean isUserMessage) {
+        System.out.println("Displaying message: " + message); // 디버그 출력
         AlignEnum align = isUserMessage ? AlignEnum.RIGHT : AlignEnum.LEFT;
         String timestamp = LocalTime.now().format(DateTimeFormatter.ofPattern("aHH:mm"));
         String userDisplayName = isUserMessage ? userName : panelName;
@@ -114,6 +147,7 @@ public class ChatWindowPanel extends JPanel {
 
             document.setParagraphAttributes(document.getLength(), document.getLength() + 1, alignment, true);
             document.insertString(document.getLength(), string + "\n", alignment);
+            System.out.println("Message printed: " + string); // 디버그 출력
         } catch (BadLocationException e) {
             e.printStackTrace();
         }

@@ -79,18 +79,13 @@ public class ServerHandler {
                             String message = parts[2];
                             userName = sender;
 
-                            System.out.println("요청 처리 중: " + socket.getRemoteSocketAddress());
+                            System.out.println("요청 처리 중: " + socket.getRemoteSocketAddress() + ": " + Thread.currentThread().getName());
 
-                            // 송신자에게 확인 메시지 전송 (optional)
-                            send(receivedMessage);
+                            send(receivedMessage); // 발신자에게 확인 메시지 전송
 
-                            // 모든 클라이언트에게 메시지 브로드캐스트 또는 특정 수신자에게만 전송
                             for (Client client : connections) {
-                                if (client.userName != null && !client.userName.equals(sender)) {
-                                    // receiver가 지정된 경우 해당 클라이언트에게만 전송
-                                    if (receiver.equals(client.userName)) {
-                                        client.send(receivedMessage);
-                                    }
+                                if (client.userName != null && client.userName.equals(receiver) && !sender.equals(receiver)) {
+                                    client.send(receivedMessage);
                                 }
                             }
                         } else {

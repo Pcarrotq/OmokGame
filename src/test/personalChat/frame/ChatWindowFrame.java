@@ -1,7 +1,13 @@
 package test.personalChat.frame;
 
-import javax.swing.*;
-import java.awt.event.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+
+import test.personalChat.frame.FriendListPanel;
+import test.personalChat.frame.IndexPanel;
 
 @SuppressWarnings("serial")
 public class ChatWindowFrame extends JFrame {
