@@ -19,52 +19,38 @@ public class ChatWindowPanel extends JPanel {
     private String panelName;
     private JTextArea textArea;
     private JButton sendButton;
-    private JButton imgFileButton;
     private JTextPane jtp;
     private StyledDocument document;
     private static String userName;
-    private ServerSocket serverSocket;
+    private ServerSocket serverSocket; // 서버 소켓 객체 추가
 
-    public ChatWindowPanel(Icon icon, String friendName) {
-        userName = "User"; // 기본 사용자 이름 설정
+    public ChatWindowPanel(Icon icon, String friendName, ServerSocket serverSocket) {
+        userName = "User";
         panelName = friendName;
-
-        // 서버와 연결 설정
-        serverSocket = new ServerSocket();
-        try {
-            serverSocket.connect(new InetSocketAddress("localhost", 5000)); // 서버에 연결
-            System.out.println("서버와 연결됨");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        this.serverSocket = serverSocket; // 서버 소켓 객체 초기화
 
         setLayout(null);
         showFriendInfo(icon, friendName); // 친구 정보 표시
         writeMessageArea(); // 메시지 입력 영역 설정
         showContentArea(); // 메시지 출력 영역 설정
 
-        imgFileButton = showImgFileButton();
-        add(imgFileButton);
-
         sendButton = showSendButton();
         add(sendButton);
 
-        // 전송 버튼 이벤트 리스너
+        // Send button action listener
         sendButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String message = textArea.getText();
+                String message = textArea.getText().trim();
                 if (!message.isEmpty()) {
-                    // 메시지를 서버로 전송
+                    displayComment(message, true);
+                    textArea.setText(""); // 텍스트 입력창 초기화
+                    
+                    // 서버로 메시지 전송
                     serverSocket.send(userName, panelName, message);
-                    displayComment(message, true); // 본인 메시지로 표시
-                    textArea.setText(""); // 입력 필드 초기화
                 }
             }
         });
-
-        // 서버에서 메시지를 수신
-        receiveMessages();
     }
 
     private void showFriendInfo(Icon icon, String friendName) {
@@ -113,7 +99,6 @@ public class ChatWindowPanel extends JPanel {
     }
 
     public void displayComment(String message, boolean isUserMessage) {
-        System.out.println("Displaying message: " + message); // 디버그 출력
         AlignEnum align = isUserMessage ? AlignEnum.RIGHT : AlignEnum.LEFT;
         String timestamp = LocalTime.now().format(DateTimeFormatter.ofPattern("aHH:mm"));
         String userDisplayName = isUserMessage ? userName : panelName;
@@ -129,34 +114,8 @@ public class ChatWindowPanel extends JPanel {
 
             document.setParagraphAttributes(document.getLength(), document.getLength() + 1, alignment, true);
             document.insertString(document.getLength(), string + "\n", alignment);
-            System.out.println("Message printed: " + string); // 디버그 출력
         } catch (BadLocationException e) {
             e.printStackTrace();
         }
-    }
-
-    // 서버에서 메시지를 수신하고 화면에 표시
-    private void receiveMessages() {
-        new Thread(() -> {
-            while (true) {
-                String receivedMessage = serverSocket.receive();
-                System.out.println("Received message: " + receivedMessage); // 디버그 출력
-                if (receivedMessage != null && !receivedMessage.isEmpty()) {
-                    String[] parts = receivedMessage.split(":");
-                    if (parts.length == 3) { // 메시지 형식이 올바른지 확인
-                        String sender = parts[0];
-                        String receiver = parts[1];
-                        String messageContent = parts[2];
-
-                        // 메시지가 자신에게 온 것인지 확인
-                        if (receiver.equals(userName)) {
-                            displayComment(messageContent, false);
-                        }
-                    } else {
-                        System.out.println("Invalid message format: " + receivedMessage);
-                    }
-                }
-            }
-        }).start();
     }
 }

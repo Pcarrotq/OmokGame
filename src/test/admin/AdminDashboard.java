@@ -1,13 +1,10 @@
 package test.admin;
 
+import java.awt.*;
+import java.awt.event.*;
 import javax.swing.*;
 
 import test.main.GameStartScreen;
-
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
 public class AdminDashboard extends JFrame {
     public AdminDashboard() {

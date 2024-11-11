@@ -1,9 +1,16 @@
 package test.personalChat.frame;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.util.*;
-import javax.swing.*;
+import java.awt.Color;
+import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import javax.swing.JButton;
+import javax.swing.JPanel;
+import javax.swing.SwingConstants;
+import test.personalChat.server.ServerSocket;
+import test.personalChat.frame.ChatWindowPanel;
+import test.personalChat.frame.ProfileIcon;
 
 @SuppressWarnings("serial")
 public class FriendListPanel extends JPanel {
@@ -22,20 +29,26 @@ public class FriendListPanel extends JPanel {
         setLayout(new GridLayout(friendNum, 0));
         
         for (int index = 0; index < friendNum; index++) {
-            final int currentIndex = index; // index 값을 복사하여 final로 선언
+            final int currentIndex = index;
 
             JButton friendButton = new JButton(friends.get(currentIndex), new ProfileIcon(friends.get(currentIndex)));
-            friendButton.setHorizontalAlignment(SwingConstants.LEFT); // 아이콘과 텍스트를 좌측 정렬
+            friendButton.setHorizontalAlignment(SwingConstants.LEFT);
 
             friendButton.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
-                    // 친구 리스트의 크기를 확인하여 IndexOutOfBoundsException 방지
                     if (currentIndex < friends.size() && !friendButton.getText().contains("대화 중")) {
                         friendButton.setText(friendButton.getText() + "       대화 중..");
 
-                        // 정확한 친구 이름을 사용하여 ProfileIcon 및 ChatWindowPanel 생성
-                        ChatWindowPanel chatPanel = new ChatWindowPanel(new ProfileIcon(friends.get(currentIndex)), friends.get(currentIndex));
+                        // ServerSocket 객체 생성 및 설정
+                        ServerSocket serverSocket = new ServerSocket();
+                        serverSocket.setUserName("User");
+                        serverSocket.startClient();
+
+                        // ChatWindowPanel 생성 및 서버 소켓 설정
+                        ChatWindowPanel chatPanel = new ChatWindowPanel(new ProfileIcon(friends.get(currentIndex)), friends.get(currentIndex), serverSocket);
+                        serverSocket.setChatWindowPanel(chatPanel);
+
                         new ChatWindowFrame(chatPanel, friends.get(currentIndex));
                     }
                 }
@@ -45,8 +58,7 @@ public class FriendListPanel extends JPanel {
             friendButtons.add(friendButton);
         }
     }
-    
-    // 창이 닫힐 때 버튼 상태를 초기화하는 메서드
+
     public static void resetFriendButtonState(String friendName) {
         for (JButton friendButton : friendButtons) {
             if (friendButton.getText().contains(friendName)) {
