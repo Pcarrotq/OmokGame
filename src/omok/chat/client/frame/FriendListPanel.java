@@ -1,4 +1,4 @@
-package test.chat.client.frame;
+package omok.chat.client.frame;
 
 import java.awt.*;
 import java.awt.event.*;

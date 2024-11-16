@@ -1,4 +1,4 @@
-package test.chat.client.frame;
+package omok.chat.client.frame;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -9,7 +9,7 @@ import java.time.format.DateTimeFormatter;
 import javax.swing.*;
 import javax.swing.text.*;
 
-import test.chat.enums.AlignEnum;
+import omok.chat.enums.AlignEnum;
 
 @SuppressWarnings("serial")
 public class ChatWindowPanel extends JPanel {

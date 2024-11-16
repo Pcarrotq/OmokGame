@@ -1,4 +1,4 @@
-package test.chat.client.frame;
+package omok.chat.client.frame;
 
 import java.awt.*;
 import java.awt.geom.Line2D;
@@ -10,8 +10,8 @@ import javax.imageio.ImageIO;
 import java.io.ByteArrayInputStream;
 import javax.swing.*;
 
-import test.member.DBConnection;
-import test.member.UserProfile;
+import omok.member.DBConnection;
+import omok.member.UserProfile;
 
 @SuppressWarnings("serial")
 public class IndexPanel extends JPanel {

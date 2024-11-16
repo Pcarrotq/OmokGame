@@ -7,7 +7,7 @@ import omok.game.GUI;
 import omok.member.*;
 import omok.admin.AdminDashboard;
 import omok.main.GameStartScreen;
-import omok.personalChat.frame.IndexPanel;
+import omok.chat.client.frame.IndexPanel;
 
 import java.awt.*;
 import java.awt.event.*;

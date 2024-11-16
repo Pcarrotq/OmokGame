@@ -1,4 +1,4 @@
-package test.chat.enums;
+package omok.chat.enums;
 
 public enum AlignEnum {
 	LEFT("left","왼쪽"),
@@ -9,15 +9,14 @@ public enum AlignEnum {
 	  
 	AlignEnum(String align, String title) {
 		this.align = align;
-	    this.title = title;
-	}
-	  
-	public String getAlign() {
-	    return align;
+		this.title = title;
 	}
 
-	  
+	public String getAlign() {
+		return align;
+	}
+  
 	public String getTitle() {
-	    return title;
+		return title;
 	}
 }

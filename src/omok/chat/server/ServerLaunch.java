@@ -1,4 +1,4 @@
-package test.chat.server;
+package omok.chat.server;
 
 public class ServerLaunch {
 	public static void main(String[] args) {
