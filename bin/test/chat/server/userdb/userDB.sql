@@ -27,10 +27,8 @@ CREATE TABLE friendList (
     userEmail VARCHAR2(30),
     friendEmail VARCHAR2(30),
     PRIMARY KEY(id),
-    CONSTRAINT fk_userEmail FOREIGN KEY (userEmail)
-        REFERENCES member_table (uemail),
-    CONSTRAINT fk_friendEmail FOREIGN KEY (friendEmail)
-        REFERENCES member_table (uemail)
+    CONSTRAINT fk_userEmail FOREIGN KEY (userEmail) REFERENCES member_table (uemail),
+    CONSTRAINT fk_friendEmail FOREIGN KEY (friendEmail) REFERENCES member_table (uemail)
 );
 
 insert into friendList values(1,'a','b');

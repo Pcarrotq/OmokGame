@@ -5,7 +5,6 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.sql.*;
-import test.member.DBConnection;
 
 public class EditMember extends JFrame {
     // UI Components
@@ -92,7 +91,6 @@ public class EditMember extends JFrame {
         addField(formPanel, gbc, "Name:", nameTf, 0);
 
         JPanel nicknamePanel = new JPanel();
-        nicknameTf = new JTextField(10);
         nicknameTf = new JTextField(10);
         nicknameButton = new JButton("중복 확인");
         nicknamePanel.add(nicknameTf);

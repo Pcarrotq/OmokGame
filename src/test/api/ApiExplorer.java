@@ -17,8 +17,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 
-import test.member.SignUp;
-
 import org.w3c.dom.Element;
 
 public class ApiExplorer extends JFrame {
@@ -27,11 +25,10 @@ public class ApiExplorer extends JFrame {
     private JList<String> resultList;
     private DefaultListModel<String> listModel;
     private JButton searchButton, confirmButton, closeButton;
-    private SignUp signUp;
-    private JFrame parentFrame;
+    private PostalCodeSelectionListener selectionListener;
 
-    public ApiExplorer(JFrame parentFrame) {
-    	this.parentFrame = parentFrame;
+    public ApiExplorer(PostalCodeSelectionListener listener) {
+    	this.selectionListener = listener;
         setTitle("우편번호 찾기");
         setSize(600, 500);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -105,17 +102,14 @@ public class ApiExplorer extends JFrame {
         confirmButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (resultList.getSelectedValue() != null) {
-                    // 선택된 우편번호와 주소를 SignUp 폼에 업데이트
-                    String postalCode = postalCodeField.getText();
-                    String address = addressField.getText();
+                String selectedValue = resultList.getSelectedValue();
+                if (selectedValue != null) {
+                    String[] parts = selectedValue.split(" - ");
+                    String postalCode = parts[0];
+                    String address = parts[1];
 
-                    // 부모가 SignUp인지 확인하고 주소 업데이트
-                    if (parentFrame instanceof SignUp) {
-                        SignUp signUp = (SignUp) parentFrame;
-                        signUp.updateAddressFields(postalCode, address);  // 부모창의 메서드를 호출
-                    }
-                    dispose(); // 창 닫기
+                    // 선택된 값 전달
+                    onConfirmButtonPressed(postalCode, address);
                 } else {
                     JOptionPane.showMessageDialog(null, "주소를 선택해 주세요.");
                 }
@@ -201,21 +195,31 @@ public class ApiExplorer extends JFrame {
     
     // 검색 결과에서 확인 버튼을 눌렀을 때 호출되는 메서드에서 SignUp 인스턴스에 값 전달
     private void onConfirmButtonPressed(String selectedPostalCode, String selectedAddress) {
-        // SignUp 클래스의 정적 메서드를 통해 현재 열려있는 인스턴스에 접근
-        SignUp signUpInstance = SignUp.getCurrentInstance();
-        if (signUpInstance != null) {
-            signUpInstance.updateAddressFields(selectedPostalCode, selectedAddress);
+        if (selectionListener != null) {
+            // 리스너를 통해 값을 전달
+            selectionListener.onPostalCodeSelected(selectedPostalCode, selectedAddress);
+        } else {
+            JOptionPane.showMessageDialog(null, "리스너가 설정되지 않았습니다.");
         }
-        dispose();  // 현재 우편번호 검색창 닫기
+        dispose(); // 현재 우편번호 검색창 닫기
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                SignUp signUpInstance = new SignUp(); // SignUp 인스턴스 생성
-                new ApiExplorer(signUpInstance).setVisible(true); // ApiExplorer에 SignUp 인스턴스 전달
-            }
+        SwingUtilities.invokeLater(() -> {
+            ApiExplorer postalCodeSearch = new ApiExplorer((postalCode, address) -> {
+                // 데이터를 전달받은 후 처리
+                System.out.println("우편번호: " + postalCode);
+                System.out.println("주소: " + address);
+
+                // 추가 작업이 필요하다면 여기서 수행
+                // 예: 데이터를 다른 클래스에 전달
+            });
+
+            postalCodeSearch.setVisible(true);
         });
+    }
+    
+    public interface PostalCodeSelectionListener {
+        void onPostalCodeSelected(String postalCode, String address);
     }
 }

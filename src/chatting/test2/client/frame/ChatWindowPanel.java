@@ -13,8 +13,7 @@ import javax.swing.text.*;
 import chatting.test2.controller.Controller;
 import chatting.test2.enums.AlignEnum;
 import chatting.test2.server.datacommunication.Message;
-import chatting.test2.util.ColorSet;
-import chatting.test2.util.FileChooser;
+import chatting.test2.util.*;
 
 @SuppressWarnings("serial")
 public class ChatWindowPanel extends JPanel {

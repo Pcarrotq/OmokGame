@@ -1,23 +1,10 @@
 package chatting.test1;
 
-import java.awt.BorderLayout;
-import java.awt.Container;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.net.Socket;
-import java.net.UnknownHostException;
-
-import javax.swing.JFrame;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
-
+import java.awt.*;
+import java.awt.event.*;
+import java.io.*;
+import java.net.*;
+import javax.swing.*;
 
 public class ClientGui extends JFrame implements ActionListener, Runnable{
 	// 클라이언트 화면용

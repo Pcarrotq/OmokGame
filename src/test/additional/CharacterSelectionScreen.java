@@ -2,11 +2,10 @@ package test.additional;
 
 import javax.swing.*;
 
-import test.game.GUI;
+import test.game.gui.*;
 
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.util.function.Consumer;
 

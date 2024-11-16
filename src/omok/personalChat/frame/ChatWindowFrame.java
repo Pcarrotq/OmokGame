@@ -1,13 +1,7 @@
 package omok.personalChat.frame;
 
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-
-import omok.personalChat.frame.FriendListPanel;
-import omok.personalChat.frame.IndexPanel;
+import java.awt.event.*;
+import javax.swing.*;
 
 @SuppressWarnings("serial")
 public class ChatWindowFrame extends JFrame {

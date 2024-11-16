@@ -1,58 +1,33 @@
 package test.chat.controller;
 
-import java.util.ArrayList;
-import javax.swing.*;
+import java.util.*;
 
 import test.chat.client.datacommunication.ClientSocket;
-import test.chat.client.frame.*;
-import test.chat.server.userdb.*;
+import test.member.*;
 
 public class Controller {
   private static Controller singleton = new Controller();
   public String username = null;
   public ClientSocket clientSocket;
-  UserDAO userDAO;
+  DBConnection dbConnection;
 
   private Controller() {
     clientSocket = new ClientSocket();
-    userDAO = new UserDAO();
+    dbConnection = new DBConnection();
   }
 
   public static Controller getInstance() {
     return singleton;
   }
 
-  public void insertDB(User user) {
-    boolean isInsert = userDAO.insertDB(user);
-
-    if (isInsert) {
-      MainPanel mainPanel = new MainPanel(MainPanel.frame);
-      MainPanel.frame.change(mainPanel);
-      JOptionPane.showMessageDialog(mainPanel, "회원가입 성공!!!", "회원가입", JOptionPane.WARNING_MESSAGE);
-    } else {
-      ErrorMessagePanel errorPanel = new ErrorMessagePanel("회원가입");
-      MainPanel.frame.change(errorPanel);
-    }
-  }
-
-  public void findUser(ArrayList<JTextField> userInfos) {
-   username = userDAO.findUser(userInfos);
-
-    if (username != null) {
-      IndexPanel indexPanel = new IndexPanel();
-      MainPanel.frame.change(indexPanel);
-      clientSocket.startClient();
-      JOptionPane.showMessageDialog(indexPanel, "로그인 성공!!!", "로그인", JOptionPane.WARNING_MESSAGE);
-    } else if (username == null) {
-      ErrorMessagePanel err = new ErrorMessagePanel("로그인");
-      MainPanel.frame.change(err);
-    }
-  }
-
   public ArrayList<String> friendList() {
-    ArrayList<String> friends = new ArrayList<String>();
-    friends = userDAO.friendList();
+	    ArrayList<String> friends = new ArrayList<>();
+	    List<UserProfile> userList = dbConnection.getAllUsers();
 
-    return friends;
+	    for (UserProfile user : userList) {
+	        friends.add(user.getNickname());  // 또는 user.getId()로 ID를 추가할 수도 있습니다.
+	    }
+
+	    return friends;
   }
 }

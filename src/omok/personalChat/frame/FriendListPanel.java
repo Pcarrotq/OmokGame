@@ -1,18 +1,10 @@
 package omok.personalChat.frame;
 
-import java.awt.Color;
-import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.*;
+import java.awt.event.*;
 import java.util.ArrayList;
 
-import javax.swing.JButton;
-import javax.swing.JPanel;
-import javax.swing.SwingConstants;
-
-import omok.personalChat.frame.ChatWindowFrame;
-import omok.personalChat.frame.ChatWindowPanel;
-import omok.personalChat.frame.ProfileIcon;
+import javax.swing.*;
 
 @SuppressWarnings("serial")
 public class FriendListPanel extends JPanel {

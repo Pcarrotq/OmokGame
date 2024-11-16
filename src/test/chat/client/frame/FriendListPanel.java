@@ -43,8 +43,7 @@ public class FriendListPanel extends JPanel {
           } else {
             friendButtons.get(idx).setText(friendButtons.get(idx).getText() + "       대화 중..");
             String messageType = "text";
-            Message message = new Message(controller.username, controller.username + "님이 입장하였습니다.",
-                LocalTime.now(), messageType, friends.get(idx));
+            Message message = new Message(controller.username, controller.username + "님이 입장하였습니다.", LocalTime.now(), messageType, friends.get(idx));
             ChatWindowPanel c = new ChatWindowPanel(friends.get(idx)); // 기본 아이콘 전달
             new ChatWindowFrame(c, friends.get(idx));
             IndexPanel.chatPanelName.add(c);

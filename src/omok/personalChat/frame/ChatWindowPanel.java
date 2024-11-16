@@ -1,39 +1,16 @@
 package omok.personalChat.frame;
 
-import java.awt.Color;
-import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Image;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.*;
+import java.awt.event.*;
 import java.awt.geom.Line2D;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
-import javax.swing.BorderFactory;
-import javax.swing.Icon;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextPane;
-import javax.swing.ScrollPaneConstants;
-import javax.swing.border.Border;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.DefaultStyledDocument;
-import javax.swing.text.SimpleAttributeSet;
-import javax.swing.text.Style;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyleContext;
-import javax.swing.text.StyledDocument;
+import javax.swing.*;
+import javax.swing.text.*;
 
 import omok.personalChat.frame.ChatWindowPanel;
-import omok.personalChat.frame.IndexPanel;
-import test.personalChat.enums.AlignEnum;
-import omok.personalChat.enums.*;
+import omok.personalChat.enums.AlignEnum;
 
 @SuppressWarnings("serial")
 public class ChatWindowPanel extends JPanel {

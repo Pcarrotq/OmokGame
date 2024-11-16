@@ -158,4 +158,27 @@ public class DBConnection {
         }
         return users;
     }
+    
+    // 회원 정보를 가져오는 fetchMembers 메소드 추가
+    public List<Object[]> fetchMembers() {
+        List<Object[]> members = new ArrayList<>();
+        String query = "SELECT id, name, nickname, gender FROM user_info";
+
+        try (Connection conn = getConnection(); 
+             Statement stmt = conn.createStatement(); 
+             ResultSet rs = stmt.executeQuery(query)) {
+            while (rs.next()) {
+                Object[] row = {
+                    rs.getString("id"),
+                    rs.getString("name"),
+                    rs.getString("nickname"),
+                    rs.getString("gender")
+                };
+                members.add(row);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return members;
+    }
 }

@@ -1,7 +1,6 @@
 package omok.personalChat.frame;
 
 import java.awt.*;
-import java.awt.event.*;
 import java.awt.geom.Line2D;
 import java.awt.image.BufferedImage;
 import java.util.*;
@@ -13,9 +12,6 @@ import javax.swing.*;
 
 import omok.member.DBConnection;
 import omok.member.UserProfile;
-import omok.personalChat.frame.ChatWindowFrame;
-import omok.personalChat.frame.ChatWindowPanel;
-import omok.personalChat.frame.ProfileIcon;
 
 @SuppressWarnings("serial")
 public class IndexPanel extends JPanel {

@@ -10,8 +10,6 @@ import javax.imageio.ImageIO;
 import java.io.*;
 import java.util.regex.*;
 
-import omok.member.DBConnection;
-import omok.member.ProfilePictureSelector;
 import test.additional.ImageCropper;
 import test.api.ApiExplorer;
 
@@ -23,10 +21,18 @@ public class SignUp extends JFrame implements ActionListener {
 	JPanel postalCodePanel, addressPanel, detailAddressPanel;
     
 	// 입력란 컴포넌트
-    JTextField emailLocalTf, emailDomainTf;
-    JTextField nameTf, idTf, nicknameTf, phoneMiddleTf, phoneBackTf, postalCodeTf, detailedAddressTf;
+    public JTextField emailLocalTf;
+	JTextField emailDomainTf;
+    JTextField nameTf;
+	public JTextField idTf;
+	JTextField nicknameTf;
+	JTextField phoneMiddleTf;
+	JTextField phoneBackTf;
+	JTextField postalCodeTf;
+	JTextField detailedAddressTf;
     JTextField addressTf;
-    JPasswordField passTf, passReTf;
+    public JPasswordField passTf;
+	JPasswordField passReTf;
 
     // 선택 박스 컴포넌트 - 클릭하면 값이 밑으로 펼쳐짐
     JComboBox<String> yearComboBox, monthComboBox, dayComboBox;
@@ -36,7 +42,13 @@ public class SignUp extends JFrame implements ActionListener {
     JRadioButton menButton, girlButton;
 
     // 버튼 컴포넌트
-    JButton registerButton, idCheckButton, nicknameButton, uploadButton, addressBtn, postalCodeBtn, defaultProfileButton;
+    public JButton registerButton;
+	JButton idCheckButton;
+	JButton nicknameButton;
+	JButton uploadButton;
+	JButton addressBtn;
+	JButton postalCodeBtn;
+	JButton defaultProfileButton;
 
     // 라벨 컴포넌트 - 글자 띄워줌
     JLabel titleLabel;
@@ -49,24 +61,15 @@ public class SignUp extends JFrame implements ActionListener {
     JProgressBar strengthBar;
 
     JComboBox<String> emailDomainComboBox; // 이메일 주소 선택 박스
-    
     JTextArea addressSuggestionTa; // 주소 추천 표시할 텍스트 영역
-    
     ProfilePictureSelector profilePictureSelector;
-
-    
     Font font = new Font("회원가입", Font.BOLD, 40);
-
     
-    String years = "", months = "", days = "";
-    String id = "", pass = "", passRe = "", name = "", sex = "", nickname = "";
-    String phoneFront = "", phone = "", email = "", gender = "";
-    String postalCode = "", address = "", detailedAddress = "";
-    
+    String years = "", months = "", days = "", id = "", pass = "", passRe = "", name = "", sex = "", nickname = "";
+    String phoneFront = "", phone = "", email = "", gender = "", postalCode = "", address = "", detailedAddress = "";
     
     DBConnection lp = new DBConnection();
     private static SignUp currentInstance;
-
     
     public SignUp() {
     	currentInstance = this;
@@ -74,7 +77,6 @@ public class SignUp extends JFrame implements ActionListener {
         setTitle("회원가입");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // 창 닫기 버튼 활성화
         // setSize(1500, 1000); // 창 크기 설정
-        
         getContentPane().setLayout(new GridBagLayout());
         
         GridBagConstraints gbc = new GridBagConstraints();
@@ -486,7 +488,10 @@ public class SignUp extends JFrame implements ActionListener {
         postalCodeBtn.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                ApiExplorer postalCodeSearch = new ApiExplorer(SignUp.this);
+                ApiExplorer postalCodeSearch = new ApiExplorer((postalCode, address) -> {
+                    // SignUp 클래스의 메서드를 호출하여 우편번호와 주소를 업데이트합니다.
+                    updateAddressFields(postalCode, address);
+                });
                 postalCodeSearch.setVisible(true);
             }
         });
@@ -515,21 +520,6 @@ public class SignUp extends JFrame implements ActionListener {
     // 현재 SignUp 인스턴스를 반환하는 메서드
     public static SignUp getCurrentInstance() {
         return currentInstance;
-    }
-    
-    // GridBagConstraints 생성 메서드
-    private GridBagConstraints createGbc(int gridx, int gridy) {
-        return createGbc(gridx, gridy, 1);
-    }
-
-    private GridBagConstraints createGbc(int gridx, int gridy, int gridwidth) {
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = gridx;
-        gbc.gridy = gridy;
-        gbc.gridwidth = gridwidth;
-        gbc.insets = new Insets(10, 10, 10, 10);
-        gbc.anchor = GridBagConstraints.WEST; // 왼쪽 정렬
-        return gbc;
     }
     
     // 필드 추가 메서드
@@ -651,12 +641,6 @@ public class SignUp extends JFrame implements ActionListener {
     public void updateAddressFields(String postalCode, String address) {
     	postalCodeTf.setText(postalCode);
     	addressTf.setText(address);
-    }
-    
-    // Launching ApiExplorer from SignUp
-    private void openApiExplorer() {
-        ApiExplorer apiExplorer = new ApiExplorer(this); // Pass this instance
-        apiExplorer.setVisible(true);
     }
     
     // ActionListener의 추상 메서드 구현

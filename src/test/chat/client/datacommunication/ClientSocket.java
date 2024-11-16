@@ -91,6 +91,10 @@ public class ClientSocket {
       
       // message객체를 byte로 변환 후 소켓을 통해 보냄
       try {
+        if (socket == null) {
+        	System.out.println("Socket is null, unable to connect to the server.");
+        	return;
+        }
         byte[] data = bytes;
         OutputStream outputStream = socket.getOutputStream(); // 출력 스트림 얻기.
         outputStream.write(data);

@@ -4,10 +4,9 @@ import javax.swing.*;
 
 import test.additional.CharacterSelectionScreen;
 import test.member.EditMember;
-import test.personalChat.frame.IndexPanel;
-import test.game.GUI;
+import test.game.gui.GUI;
 import test.member.*;
-import test.admin.*;
+import test.chat.client.frame.IndexPanel;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -153,16 +152,15 @@ public class GameStartScreen extends JFrame {
         friendsButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         friendsButton.setMaximumSize(new Dimension(100, 30));
         friendsButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // IndexPanel을 새로운 창으로 열기
+        	@Override
+        	public void actionPerformed(ActionEvent e) {
                 JFrame indexFrame = new JFrame("1 대 1 대화");
                 indexFrame.setSize(400, 600);
                 indexFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
                 indexFrame.add(new IndexPanel());
                 indexFrame.setLocationRelativeTo(null); // 화면 중앙에 창을 위치시킴
                 indexFrame.setVisible(true);
-            }
+        	}
         });
         mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
         mainPanel.add(friendsButton);
@@ -174,10 +172,8 @@ public class GameStartScreen extends JFrame {
         settingsButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // 로그인된 사용자 ID를 사용해 EditMember 화면을 연다
-                String loggedInUserId = Login.getLoggedInUserId();
-                if (loggedInUserId != null) {
-                    new EditMember(loggedInUserId);  // EditMember 화면을 연다 (로그인된 사용자 정보가 사용됨)
+                if (userId != null) {
+                    new EditMember(userId);  // EditMember 화면을 연다 (로그인된 사용자 정보가 사용됨)
                 } else {
                     JOptionPane.showMessageDialog(null, "로그인된 사용자가 없습니다.", "오류", JOptionPane.ERROR_MESSAGE);
                 }
@@ -185,20 +181,6 @@ public class GameStartScreen extends JFrame {
         });
         mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
         mainPanel.add(settingsButton);
-        
-        // 관리자 설정 버튼
-        JButton adminSettingsButton = new JButton("관리자 설정");
-        adminSettingsButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        adminSettingsButton.setMaximumSize(new Dimension(100, 30));
-        adminSettingsButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // 관리자 대시보드 창 열기
-                new AdminDashboard();
-            }
-        });
-        mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
-        mainPanel.add(adminSettingsButton);
 
         // 로그아웃 버튼
         JButton logoutButton = new JButton("로그아웃");

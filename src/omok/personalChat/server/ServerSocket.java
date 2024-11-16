@@ -4,7 +4,7 @@ import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
-import test.personalChat.frame.ChatWindowPanel;
+import omok.personalChat.frame.ChatWindowPanel;
 
 public class ServerSocket {
     private Socket socket;
