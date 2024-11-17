@@ -1,4 +1,4 @@
-package test.chat.server;
+package test.chat.server.datacommunication;
 
 import java.io.*;
 import java.net.*;

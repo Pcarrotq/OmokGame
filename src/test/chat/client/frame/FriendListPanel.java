@@ -2,9 +2,13 @@ package test.chat.client.frame;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.time.LocalTime;
 import java.util.ArrayList;
 
 import javax.swing.*;
+
+import test.chat.controller.Controller;
+import test.chat.server.datacommunication.Message;
 
 @SuppressWarnings("serial")
 public class FriendListPanel extends JPanel {
@@ -25,19 +29,25 @@ public class FriendListPanel extends JPanel {
         for (int index = 0; index < friendNum; index++) {
             final int currentIndex = index; // index 값을 복사하여 final로 선언
 
+            Controller controller = Controller.getInstance();
             JButton friendButton = new JButton(friends.get(currentIndex), new ProfileIcon(friends.get(currentIndex)));
             friendButton.setHorizontalAlignment(SwingConstants.LEFT); // 아이콘과 텍스트를 좌측 정렬
 
             friendButton.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
+                	int idx = (Integer) ((JButton) e.getSource()).getClientProperty("page");
                     // 친구 리스트의 크기를 확인하여 IndexOutOfBoundsException 방지
                     if (currentIndex < friends.size() && !friendButton.getText().contains("대화 중")) {
                         friendButton.setText(friendButton.getText() + "       대화 중..");
+                        
+                        String messageType = "text";
+                        Message message = new Message(controller.username, controller.username + "님이 입장하였습니다.", LocalTime.now(), messageType, friends.get(idx));
 
                         // 정확한 친구 이름을 사용하여 ProfileIcon 및 ChatWindowPanel 생성
                         ChatWindowPanel chatPanel = new ChatWindowPanel(new ProfileIcon(friends.get(currentIndex)), friends.get(currentIndex));
                         new ChatWindowFrame(chatPanel, friends.get(currentIndex));
+                        controller.clientSocket.send(message);
                     }
                 }
             });

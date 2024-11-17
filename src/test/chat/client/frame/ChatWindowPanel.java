@@ -3,20 +3,24 @@ package test.chat.client.frame;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.Line2D;
+import java.io.File;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
 import javax.swing.*;
 import javax.swing.text.*;
 
+import test.chat.controller.Controller;
 import test.chat.enums.AlignEnum;
+import test.chat.server.datacommunication.Message;
+import test.chat.util.FileChooser;
 
 @SuppressWarnings("serial")
 public class ChatWindowPanel extends JPanel {
 	private String panelName;
 	private JTextArea textArea;
 	private JButton sendButton;
-	private JButton imgFileButton;
+	private JButton fileButton;
 	private JTextPane jtp;
 	private StyledDocument document;
 	private static String userName;
@@ -30,21 +34,28 @@ public class ChatWindowPanel extends JPanel {
         writeMessageArea(); // 메시지 입력 영역 설정
         showContentArea(); // 메시지 출력 영역 설정
 
-        imgFileButton = showImgFileButton();
-        add(imgFileButton);
+        fileButton = showImgFileButton();
+        add(fileButton);
+        fileButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent arg0) {
+            	File file = FileChooser.showFile();
+            	textArea.setText(file.toString());
+            }
+        });
 
         sendButton = showSendButton();
         add(sendButton);
-
-        // Send button action listener
         sendButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String message = textArea.getText().trim();
-                if (!message.isEmpty()) {
-                    displayComment(message, true);
-                    textArea.setText(""); // 텍스트 입력창 초기화
-                }
+              Controller controller = Controller.getInstance();
+
+              String messageType = textArea.getText().matches(".*\\.(jpg|png|JPG|PNG)$") ? "file" : "text";
+              Message message = new Message(controller.username, textArea.getText(), LocalTime.now(), messageType, friendName);
+              
+              controller.clientSocket.send(message);
+              textArea.setText("");
             }
         });
 	}
@@ -106,15 +117,21 @@ public class ChatWindowPanel extends JPanel {
         add(scroller2);
     }
 
-    public void displayComment(String message, boolean isUserMessage) {
-        System.out.println("Displaying message: " + message); // 디버그 출력
-        AlignEnum align = isUserMessage ? AlignEnum.RIGHT : AlignEnum.LEFT;
-        String timestamp = LocalTime.now().format(DateTimeFormatter.ofPattern("aHH:mm"));
-        String userDisplayName = isUserMessage ? userName : panelName;
+    public static void displayComment(Message message) {
+        for (ChatWindowPanel chatName : IndexPanel.chatPanelName) {
+        	// 오른쪽 출력
+        	if (userName.equals(message.getSendUserName()) && chatName.panelName.equals(message.getReceiveFriendName())) {
+	            chatName.textPrint(message.getSendTime().format(DateTimeFormatter.ofPattern("aHH:mm")) + "  <" + message.getSendUserName() + ">", AlignEnum.RIGHT);
+	            chatName.textPrint(message.getSendComment(), AlignEnum.RIGHT);
+        	}
 
-        textPrint(timestamp + "  <" + userDisplayName + ">", align);
-        textPrint(message, align);
-    }
+        	// 왼쪽 출력
+        	if (chatName.panelName.equals(message.getSendUserName()) && !chatName.panelName.equals(message.getReceiveFriendName())) {
+	            chatName.textPrint(message.getSendTime().format(DateTimeFormatter.ofPattern("aHH:mm")) + "  <" + message.getSendUserName() + ">", AlignEnum.LEFT);
+	            chatName.textPrint(message.getSendComment(), AlignEnum.LEFT);
+        	}
+        }
+      }
 
     private void textPrint(String string, AlignEnum alignEnum) {
         try {
@@ -124,6 +141,15 @@ public class ChatWindowPanel extends JPanel {
             document.setParagraphAttributes(document.getLength(), document.getLength() + 1, alignment, true);
             document.insertString(document.getLength(), string + "\n", alignment);
             System.out.println("Message printed: " + string); // 디버그 출력
+        } catch (BadLocationException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    public void addMessage(String message) {
+        try {
+            Document doc = jtp.getDocument();
+            doc.insertString(doc.getLength(), message + "\n", null);
         } catch (BadLocationException e) {
             e.printStackTrace();
         }
