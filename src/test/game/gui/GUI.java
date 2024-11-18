@@ -9,8 +9,8 @@ import java.net.Socket;
 import javax.swing.*;
 import javax.swing.text.*;
 
-import test.additional.EmojiMap;
-import test.main.GameStartScreen;
+import test.game.chat.EmojiMap;
+import test.main.start.GameStartScreen;
 
 @SuppressWarnings("serial")
 public class GUI extends JPanel {

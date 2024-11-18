@@ -5,7 +5,7 @@ import java.sql.*;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 
-import test.member.DBConnection;
+import test.member.db.DBConnection;
 
 public class MemberAdd {
     public static void handleAddMember(JTextField idTf, JPasswordField passTf, JTextField nameTf, JTextField nicknameTf,

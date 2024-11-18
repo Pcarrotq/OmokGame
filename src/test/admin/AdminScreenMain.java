@@ -1,11 +1,15 @@
 package test.admin;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.LineBorder;
+import javax.swing.event.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
+import java.io.*;
 import java.sql.*;
 import java.util.*;
 import java.util.List;
@@ -14,7 +18,9 @@ import test.member.*;
 import test.admin.*;
 import test.admin.management.*;
 import test.api.ApiExplorer;
-import test.member.Login;
+import test.member.db.DBConnection;
+import test.member.dbLoad.MemberList;
+import test.member.retouch.ImageCropper;
 
 public class AdminScreenMain extends JFrame {
     JPanel memberListPanel, memberEditPanel;
@@ -54,6 +60,31 @@ public class AdminScreenMain extends JFrame {
         JLabel searchLabel = new JLabel("검색: ");
         searchField = new JTextField();
         searchField.setToolTipText("ID 또는 이름으로 검색");
+        searchField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                filterTable();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                filterTable();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                filterTable();
+            }
+
+            private void filterTable() {
+                String searchText = searchField.getText();
+                if (searchText.trim().isEmpty()) {
+                    rowSorter.setRowFilter(null);
+                } else {
+                    rowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + searchText));
+                }
+            }
+        });
 
         searchPanel.add(searchLabel, BorderLayout.WEST);
         searchPanel.add(searchField, BorderLayout.CENTER);
@@ -68,7 +99,7 @@ public class AdminScreenMain extends JFrame {
         tableModel = new DefaultTableModel(columnNames, 0);
         memberTable = new JTable(tableModel);
         
-        // 테이블 선택 이벤트 리스너 추가
+        // 테이블 선택 이벤트 리스너
         memberTable.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) { // 선택이 완료되었을 때만 처리
                 int selectedRow = memberTable.getSelectedRow();
@@ -106,7 +137,7 @@ public class AdminScreenMain extends JFrame {
         JButton addButton = new JButton("추가"); // 회원 추가 버튼
         JButton openButton = new JButton("열람"); // 회원 정보 열람 버튼
         JButton editButton = new JButton("수정"); // 회원 정보 수정 버튼
-        JButton deleteButton = new JButton("삭제"); // 회원 삭제 버튼
+        JButton deleteButton = new JButton("삭제"); // 회원 차단 버튼
         
         addButton.addActionListener(e -> MemberAdd.handleAddMember(idTf, passTf, nameTf, nicknameTf, emailLocalTf, emailDomainTf,
                 yearComboBox, monthComboBox, dayComboBox, phoneFrontComboBox, phoneMiddleTf, phoneBackTf,
@@ -240,7 +271,7 @@ public class AdminScreenMain extends JFrame {
             public void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 if (profileImage != null) {
-                    // Scale the image to fit within the fixed size
+                    // 이미지를 150x150 크기로 스케일링
                     Image scaledImage = profileImage.getScaledInstance(150, 150, Image.SCALE_SMOOTH);
                     g.drawImage(scaledImage, 0, 0, 150, 150, this);
                 }
@@ -256,6 +287,40 @@ public class AdminScreenMain extends JFrame {
         gbc.gridy = 3;
         gbc.gridheight = 2;
         changeProfileButton = new JButton("이미지 선택");
+        changeProfileButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+		        JFileChooser fileChooser = new JFileChooser();
+		        fileChooser.setFileFilter(new FileNameExtensionFilter("이미지 파일", "jpg", "jpeg", "png"));
+		        int returnValue = fileChooser.showOpenDialog(null);
+		        if (returnValue == JFileChooser.APPROVE_OPTION) {
+		            File selectedFile = fileChooser.getSelectedFile();
+		            try {
+		                BufferedImage selectedImage = ImageIO.read(selectedFile);
+
+		                // 이미지 크롭을 위해 ImageCropper 창 열기
+		                ImageCropper cropper = new ImageCropper(selectedImage);
+		                int result = JOptionPane.showConfirmDialog(null, cropper, "이미지 크롭", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE, null);
+
+		                if (result == JOptionPane.OK_OPTION) {
+		                    // 사용자가 OK 버튼을 누르면 크롭된 이미지를 가져와서 프로필에 반영
+		                    BufferedImage croppedImage = cropper.getCroppedImage();  // 크롭된 이미지 가져오기
+		                    if (croppedImage != null) {
+		                        profileImage = croppedImage;  // SignUp의 profileImage에 저장
+		                        
+		                        // 크롭된 이미지를 이미지 레이블에 아이콘으로 설정
+		                        ImageIcon croppedIcon = new ImageIcon(croppedImage.getScaledInstance(150, 150, Image.SCALE_SMOOTH));
+		                        imageLabel.setIcon(croppedIcon);
+		                        imageLabel.setPreferredSize(new Dimension(150, 150));
+		                    }
+		                }
+		            } catch (IOException ex) {
+		                ex.printStackTrace();
+		                JOptionPane.showMessageDialog(null, "이미지 로드 실패", "오류", JOptionPane.ERROR_MESSAGE);
+		            }
+		        }
+            }
+        });
         formPanel.add(changeProfileButton, gbc);
 
         // Reset grid constraints

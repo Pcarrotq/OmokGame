@@ -9,7 +9,7 @@ import java.awt.event.ActionListener;
 public class LobbyFrame extends JFrame {
 
     public LobbyFrame() {
-        setTitle("Game Room UI");
+        setTitle("Lobby");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(800, 600);
         setLayout(new BorderLayout(10, 10)); // 컴포넌트 간 10px 간격 설정

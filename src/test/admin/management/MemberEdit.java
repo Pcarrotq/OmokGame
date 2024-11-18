@@ -5,7 +5,7 @@ import java.util.*;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 
-import test.member.DBConnection;
+import test.member.db.DBConnection;
 
 public class MemberEdit {
 	public static void handleEditMember(JTextField idTf, JTextField nameTf, JTextField nicknameTf, JTextField emailLocalTf, JTextField emailDomainTf,

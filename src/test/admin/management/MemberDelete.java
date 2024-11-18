@@ -4,7 +4,7 @@ import java.sql.*;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 
-import test.member.DBConnection;
+import test.member.db.DBConnection;
 
 public class MemberDelete {
     public static void handleDeleteMember(JTextField idTf, DefaultTableModel tableModel) {
