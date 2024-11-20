@@ -139,11 +139,27 @@ public class LobbyFrame extends JFrame implements Runnable {
     }
 
     private void joinRoom() {
-        String selectedRoom = gameRoomList.getSelectedValue();
-        if (selectedRoom != null) {
-            out.println("/join_room " + selectedRoom);
-        } else {
-            JOptionPane.showMessageDialog(this, "입장할 방을 선택하세요.", "경고", JOptionPane.WARNING_MESSAGE);
+        String roomName = JOptionPane.showInputDialog(this, "방 이름을 입력하세요:");
+        if (roomName != null && !roomName.trim().isEmpty()) {
+            // Lobby 창 닫기
+            dispose();
+
+            // CharacterSelectionScreen 화면 열기
+            SwingUtilities.invokeLater(() -> {
+                new CharacterSelectionScreen(selectedCharacter -> {
+                    // 캐릭터 선택 후 GUI 화면 열기
+                    SwingUtilities.invokeLater(() -> {
+                        JFrame gameFrame = new JFrame("오목 게임");
+                        GUI gameGui = new GUI("방 이름: " + roomName);
+                        gameGui.setPlayer1Profile(selectedCharacter);
+
+                        gameFrame.add(gameGui);
+                        gameFrame.setSize(1500, 1000);
+                        gameFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                        gameFrame.setVisible(true);
+                    });
+                });
+            });
         }
     }
 

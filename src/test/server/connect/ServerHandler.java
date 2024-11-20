@@ -50,6 +50,9 @@ public class ServerHandler {
                 if (message.startsWith("/create_room ")) {
                     String roomName = message.substring(13).trim();
                     createRoom(client, roomName);
+                } else if (message.startsWith("/remove_room ")) {
+                    String roomName = message.substring(13).trim();
+                    removeRoom(client, roomName);
                 } else if (message.startsWith("/join_room ")) {
                     String roomName = message.substring(11).trim();
                     joinRoom(client, roomName);
@@ -75,7 +78,7 @@ public class ServerHandler {
         }
     }
 
- // 방 생성 및 브로드캐스트
+	// 방 생성 및 브로드캐스트
     private void createRoom(ClientSocket client, String roomName) {
         synchronized (rooms) {
             if (!rooms.containsKey(roomName)) {
@@ -103,12 +106,24 @@ public class ServerHandler {
         }
     }
 
- // 방 목록 브로드캐스트
+	// 방 목록 브로드캐스트
     private void broadcastRoomList() {
         String roomList = String.join(",", rooms.keySet()); // 방 이름들을 ','로 연결
         synchronized (clients) {
             for (ClientSocket client : clients) {
                 client.sendMessage("/room " + roomList);
+            }
+        }
+    }
+    
+    private void removeRoom(ClientSocket client, String roomName) {
+        synchronized (rooms) {
+            if (rooms.containsKey(roomName)) {
+                rooms.remove(roomName); // 방 삭제
+                broadcastRoomList(); // 모든 클라이언트에 업데이트된 방 목록 브로드캐스트
+                System.out.println(client.getUsername() + " removed room: " + roomName);
+            } else {
+                client.sendMessage("삭제할 방이 존재하지 않습니다.");
             }
         }
     }

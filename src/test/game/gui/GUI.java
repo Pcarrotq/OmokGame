@@ -4,6 +4,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.Socket;
 
 import javax.swing.*;
@@ -49,9 +50,19 @@ public class GUI extends JPanel {
         btnExit = new JButton("나가기");
         btnExit.addActionListener(e -> {
             JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(GUI.this);
+
+            // 방 삭제 요청
+            if (parentFrame != null) {
+                String roomName = parentFrame.getTitle().replace("방 이름: ", "").trim();
+                sendRemoveRoomRequest(roomName); // 방 삭제 요청 메서드 호출
+            }
+
+            // 기존 화면 닫기
             if (parentFrame instanceof GameStartScreen) {
-                parentFrame.dispose(); // 기존 화면 닫기
-                new GameStartScreen(); // 새 MainScreen 열기
+                parentFrame.dispose();
+                new GameStartScreen();
+            } else if (parentFrame != null) {
+                parentFrame.dispose();
             }
         });
         JPanel exitPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
@@ -257,5 +268,16 @@ public class GUI extends JPanel {
 
     public void showPopUp(String message) {
         JOptionPane.showMessageDialog(this, message, "", JOptionPane.INFORMATION_MESSAGE);
+    }
+    
+    private void sendRemoveRoomRequest(String roomName) {
+        try {
+            Socket socket = new Socket("127.0.0.1", 8080); // 서버 주소 및 포트
+            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+            out.println("/remove_room " + roomName); // 서버에 방 삭제 요청
+            socket.close();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
     }
 }
