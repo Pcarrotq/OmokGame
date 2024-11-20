@@ -1,7 +1,11 @@
 package test.member.db;
 
+import java.io.ByteArrayOutputStream;
 import java.sql.*;
 import java.util.*;
+
+import javax.imageio.ImageIO;
+import javax.swing.JOptionPane;
 
 import test.member.dbLoad.UserProfile;
 

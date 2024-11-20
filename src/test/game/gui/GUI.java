@@ -10,7 +10,7 @@ import javax.swing.*;
 import javax.swing.text.*;
 
 import test.game.chat.EmojiMap;
-import test.main.start.GameStartScreen;
+import test.main.GameStartScreen;
 
 @SuppressWarnings("serial")
 public class GUI extends JPanel {
@@ -50,7 +50,8 @@ public class GUI extends JPanel {
         btnExit.addActionListener(e -> {
             JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(GUI.this);
             if (parentFrame instanceof GameStartScreen) {
-                ((GameStartScreen) parentFrame).showMainScreen(); // showMainScreen으로 돌아가기
+                parentFrame.dispose(); // 기존 화면 닫기
+                new GameStartScreen(); // 새 MainScreen 열기
             }
         });
         JPanel exitPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));

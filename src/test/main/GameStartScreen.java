@@ -1,14 +1,6 @@
-package test.main.start;
+package test.main;
 
 import javax.swing.*;
-
-import test.member.db.DBConnection;
-import test.member.retouch.EditMember;
-import test.game.gui.GUI;
-import test.game.lobby.CharacterSelectionScreen;
-import test.main.account.Login;
-import test.main.account.SignUp;
-
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
@@ -16,6 +8,14 @@ import java.net.*;
 import java.sql.*;
 
 import com.google.gson.*;
+
+import test.admin.AdminScreenMain;
+import test.game.gui.GUI;
+import test.game.lobby.CharacterSelectionScreen;
+import test.main.account.Login;
+import test.main.account.SignUp;
+import test.member.db.DBConnection;
+import test.member.retouch.EditMember;
 
 public class GameStartScreen extends JFrame {
 	private JPanel mainPanel;
@@ -162,17 +162,31 @@ public class GameStartScreen extends JFrame {
         settingsButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String userId = Login.getLoggedInUserId();
-                if (userId == null || userId.isEmpty()) {
-                    JOptionPane.showMessageDialog(GameStartScreen.this, "로그인된 사용자가 없습니다.");
-                    return;
+                // 로그인된 사용자 ID를 사용해 EditMember 화면을 연다
+                String loggedInUserId = Login.getLoggedInUserId();
+                if (loggedInUserId != null) {
+                    new EditMember(loggedInUserId);  // EditMember 화면을 연다 (로그인된 사용자 정보가 사용됨)
+                } else {
+                    JOptionPane.showMessageDialog(null, "로그인된 사용자가 없습니다.", "오류", JOptionPane.ERROR_MESSAGE);
                 }
-                // 개인 설정 화면 호출
-                new EditMember(userId);
             }
         });
         mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
         mainPanel.add(settingsButton);
+        
+        // 관리자 설정 버튼
+        JButton adminSettingsButton = new JButton("관리자 설정");
+        adminSettingsButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        adminSettingsButton.setMaximumSize(new Dimension(100, 30));
+        adminSettingsButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // 관리자 대시보드 창 열기
+                new AdminScreenMain();
+            }
+        });
+        mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
+        mainPanel.add(adminSettingsButton);
 
         // 로그아웃 버튼
         JButton logoutButton = new JButton("로그아웃");
