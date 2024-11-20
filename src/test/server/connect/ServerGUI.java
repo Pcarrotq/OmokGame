@@ -6,109 +6,103 @@ import java.awt.event.*;
 import java.io.IOException;
 
 public class ServerGUI extends JFrame {
-    private JFrame frame;
     private JLabel statusLabel;
     private JLabel clientCountLabel;
-    private JButton startButton;
-    private JButton stopButton;
-    private JButton closeButton;
-
     private ServerHandler serverHandler;
 
     public ServerGUI() {
         serverHandler = new ServerHandler();
-        createGUI();
+        setupGUI();
     }
 
-    private void createGUI() {
-        frame = new JFrame("Server Test");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(600, 300);
-        frame.setLayout(new BorderLayout()); // 기본 레이아웃 변경
+    private void setupGUI() {
+        setTitle("Server Manager");
+        setSize(500, 200);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
 
-        // 중앙에 위치할 텍스트 패널 생성
-        JPanel textPanel = new JPanel();
-        textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
-        textPanel.setBorder(BorderFactory.createEmptyBorder(50, 50, 50, 50)); // 여백 추가
-        textPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        // **상태 패널 (좌측)**
+        JPanel statusPanel = new JPanel();
+        statusPanel.setLayout(new BoxLayout(statusPanel, BoxLayout.Y_AXIS));
+        statusPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20)); // 여백 추가
 
         // 상태 레이블
-        statusLabel = new JLabel("서버 중지", SwingConstants.CENTER);
-        statusLabel.setFont(new Font("SansSerif", Font.BOLD, 50));
-        statusLabel.setForeground(Color.RED);
+        statusLabel = new JLabel("서버 중지");
+        statusLabel.setFont(new Font("SansSerif", Font.BOLD, 40));
+        statusLabel.setForeground(Color.RED); // 초기 상태는 빨간색
         statusLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        textPanel.add(statusLabel);
+        statusPanel.add(statusLabel);
 
         // 접속자 수 레이블
-        clientCountLabel = new JLabel("접속자: 0명", SwingConstants.CENTER);
+        clientCountLabel = new JLabel("접속자: -명");
         clientCountLabel.setFont(new Font("SansSerif", Font.PLAIN, 20));
         clientCountLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        textPanel.add(Box.createVerticalStrut(20)); // 상태 레이블과의 간격
-        textPanel.add(clientCountLabel);
+        statusPanel.add(Box.createVerticalStrut(20)); // 간격 추가
+        statusPanel.add(clientCountLabel);
 
-        // 오른쪽에 위치할 버튼 패널 생성
+        add(statusPanel, BorderLayout.CENTER); // 중앙에 상태 패널 추가
+
+        // **버튼 패널 (우측)**
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.Y_AXIS));
-        buttonPanel.setBorder(BorderFactory.createEmptyBorder(50, 20, 50, 20)); // 여백 추가
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20)); // 여백 추가
 
-        // 버튼 생성 및 추가
-        Dimension buttonSize = new Dimension(150, 50);
-        startButton = new JButton("서버 시작 버튼");
+        Dimension buttonSize = new Dimension(150, 40);
+
+        JButton startButton = new JButton("서버 시작 버튼");
         startButton.setPreferredSize(buttonSize);
         startButton.setMaximumSize(buttonSize);
         startButton.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        stopButton = new JButton("서버 중지 버튼");
+        JButton stopButton = new JButton("서버 중지 버튼");
         stopButton.setPreferredSize(buttonSize);
         stopButton.setMaximumSize(buttonSize);
-        stopButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         stopButton.setEnabled(false);
+        stopButton.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        closeButton = new JButton("창 닫기");
+        JButton closeButton = new JButton("창 닫기");
         closeButton.setPreferredSize(buttonSize);
         closeButton.setMaximumSize(buttonSize);
         closeButton.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // 버튼들 추가 및 간격 설정
+        // 버튼 추가 및 간격 설정
         buttonPanel.add(startButton);
-        buttonPanel.add(Box.createVerticalStrut(20)); // 버튼 간 간격
+        buttonPanel.add(Box.createVerticalStrut(10)); // 버튼 간 간격
         buttonPanel.add(stopButton);
-        buttonPanel.add(Box.createVerticalStrut(20));
+        buttonPanel.add(Box.createVerticalStrut(10));
         buttonPanel.add(closeButton);
 
-        // 프레임에 컴포넌트 추가
-        frame.add(textPanel, BorderLayout.CENTER); // 텍스트는 중앙
-        frame.add(buttonPanel, BorderLayout.EAST); // 버튼은 오른쪽
+        add(buttonPanel, BorderLayout.EAST); // 우측에 버튼 패널 추가
 
-        // 버튼 리스너 추가
-        startButton.addActionListener(e -> startServer());
-        stopButton.addActionListener(e -> stopServer());
+        // **버튼 이벤트**
+        startButton.addActionListener(e -> startServer(startButton, stopButton));
+        stopButton.addActionListener(e -> stopServer(startButton, stopButton));
         closeButton.addActionListener(e -> closeApp());
 
-        frame.setVisible(true);
+        setVisible(true); // 프레임 보이기
     }
 
-    private void startServer() {
+    private void startServer(JButton startButton, JButton stopButton) {
         try {
             serverHandler.startServer(8080);
-            statusLabel.setText("서버 시작됨");
-            statusLabel.setForeground(Color.GREEN);
+            statusLabel.setText("서버 실행 중");
+            statusLabel.setForeground(Color.BLUE); // 서버 실행 중일 때 파란색
             startButton.setEnabled(false);
             stopButton.setEnabled(true);
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(frame, "서버 시작 실패: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "서버 시작 실패: " + e.getMessage());
         }
     }
 
-    private void stopServer() {
+    private void stopServer(JButton startButton, JButton stopButton) {
         try {
             serverHandler.stopServer();
             statusLabel.setText("서버 중지");
-            statusLabel.setForeground(Color.RED);
+            statusLabel.setForeground(Color.RED); // 서버 중지일 때 빨간색
             startButton.setEnabled(true);
             stopButton.setEnabled(false);
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(frame, "서버 중지 실패: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "서버 중지 실패: " + e.getMessage());
         }
     }
 
@@ -120,6 +114,10 @@ public class ServerGUI extends JFrame {
         } catch (IOException e) {
             // Ignore
         }
-        frame.dispose();
+        dispose();
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(ServerGUI::new);
     }
 }

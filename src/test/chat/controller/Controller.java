@@ -1,5 +1,7 @@
 package test.chat.controller;
 
+import java.io.IOException;
+import java.net.Socket;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,8 +21,15 @@ public class Controller {
   	DBConnection userDB;
 
   	private Controller() {
-  		clientSocket = new ClientSocket();
-  		userDB = new DBConnection();
+  	    try {
+  	        // 서버 주소와 포트를 지정하여 소켓 연결 생성
+  	        Socket socket = new Socket("localhost", 12345); // 서버 주소와 포트를 실제 환경에 맞게 수정
+  	        clientSocket = new ClientSocket(socket);
+  	    } catch (IOException e) {
+  	        e.printStackTrace();
+  	        JOptionPane.showMessageDialog(null, "서버 연결 실패", "오류", JOptionPane.ERROR_MESSAGE);
+  	    }
+  	    userDB = new DBConnection();
   	}
 
   	public static Controller getInstance() {

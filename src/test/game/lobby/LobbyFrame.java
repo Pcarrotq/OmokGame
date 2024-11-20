@@ -3,31 +3,41 @@ package test.game.lobby;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.*;
+import java.io.*;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 
-public class LobbyFrame extends JFrame {
+public class LobbyFrame extends JFrame implements Runnable {
+    private JTextArea chatArea;
+    private JTextField chatInputField;
+    private Socket socket;
+    private PrintWriter out;
+    private BufferedReader in;
+    private JList<String> gameRoomList;
+    private DefaultListModel<String> roomListModel;
 
-    public LobbyFrame() {
+    public LobbyFrame(String ip, int port) {
         setTitle("Lobby");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(800, 600);
         setLayout(new BorderLayout(10, 10)); // 컴포넌트 간 10px 간격 설정
 
-        // 프레임 전체 테두리 간격 설정
         JPanel mainPanel = new JPanel(new BorderLayout(5, 5)); // 내부 컴포넌트 간 간격
         mainPanel.setBorder(new EmptyBorder(10, 10, 10, 10)); // 프레임과 컴포넌트 간 간격
         add(mainPanel);
 
-        // 중앙 패널: 게임 방 리스트
+        // **중앙 패널: 게임 방 리스트**
         JPanel centerPanel = new JPanel(new BorderLayout());
-        JList<String> gameRoomList = new JList<>(new String[]{"Room 1", "Room 2", "Room 3"});
+        roomListModel = new DefaultListModel<>();
+        gameRoomList = new JList<>(roomListModel);
         JScrollPane gameRoomScrollPane = new JScrollPane(gameRoomList);
         centerPanel.add(gameRoomScrollPane, BorderLayout.CENTER);
         centerPanel.setBorder(new EmptyBorder(5, 5, 5, 5)); // 내부 여백
         mainPanel.add(centerPanel, BorderLayout.CENTER);
 
-        // 오른쪽 패널: 버튼과 친구 목록
+        // **오른쪽 패널: 버튼과 친구 목록**
         JPanel rightPanel = new JPanel(new BorderLayout(5, 5)); // 버튼과 목록 간 간격
         rightPanel.setBorder(new EmptyBorder(10, 10, 10, 10)); // 패널 자체 여백
 
@@ -43,12 +53,12 @@ public class LobbyFrame extends JFrame {
         rightPanel.add(friendScrollPane, BorderLayout.CENTER);
         mainPanel.add(rightPanel, BorderLayout.EAST);
 
-        // 하단 패널: 채팅 영역
+        // **하단 패널: 채팅 영역**
         JPanel bottomPanel = new JPanel(new BorderLayout(5, 5)); // 채팅창과 입력창 간 간격
         bottomPanel.setBorder(new EmptyBorder(10, 10, 10, 10)); // 내부 여백
 
         // 채팅 출력 창
-        JTextArea chatArea = new JTextArea();
+        chatArea = new JTextArea();
         chatArea.setEditable(false);
         JScrollPane chatScrollPane = new JScrollPane(chatArea);
         chatScrollPane.setPreferredSize(new Dimension(800, 200)); // 높이 설정
@@ -57,7 +67,7 @@ public class LobbyFrame extends JFrame {
         // 채팅 입력 영역
         JPanel chatInputPanel = new JPanel(new BorderLayout());
         chatInputPanel.setBorder(new EmptyBorder(10, 0, 0, 0)); // 입력창과 출력창 간 간격
-        JTextField chatInputField = new JTextField();
+        chatInputField = new JTextField();
         JButton sendButton = new JButton("전송");
         chatInputPanel.add(chatInputField, BorderLayout.CENTER);
         chatInputPanel.add(sendButton, BorderLayout.EAST);
@@ -65,24 +75,82 @@ public class LobbyFrame extends JFrame {
 
         mainPanel.add(bottomPanel, BorderLayout.SOUTH);
 
-        // 버튼 이벤트
-        createGameButton.addActionListener(e -> JOptionPane.showMessageDialog(this, "게임 생성 버튼 클릭됨"));
-        joinGameButton.addActionListener(e -> JOptionPane.showMessageDialog(this, "게임 입장 버튼 클릭됨"));
-        sendButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String message = chatInputField.getText().trim();
-                if (!message.isEmpty()) {
-                    chatArea.append("나: " + message + "\n");
-                    chatInputField.setText("");
-                }
-            }
-        });
+        // **통신 초기화**
+        initNet(ip, port);
+
+        // **이벤트 설정**
+        sendButton.addActionListener(e -> sendMessage());
+        chatInputField.addActionListener(e -> sendMessage());
+        createGameButton.addActionListener(e -> createRoom());
+        joinGameButton.addActionListener(e -> joinRoom());
 
         setVisible(true);
+
+        // 쓰레드 실행
+        new Thread(this).start();
+    }
+
+    private void initNet(String ip, int port) {
+        try {
+            socket = new Socket(ip, port);
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())), true);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "서버에 연결할 수 없습니다.", "Error", JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
+    }
+
+    private void sendMessage() {
+        String message = chatInputField.getText().trim();
+        if (!message.isEmpty()) {
+            out.println("/chat " + message); // "/chat" 명령어 추가
+            chatInputField.setText("");
+        }
+    }
+
+    private void createRoom() {
+        String roomName = JOptionPane.showInputDialog(this, "방 이름을 입력하세요:");
+        if (roomName != null && !roomName.trim().isEmpty()) {
+            out.println("/create_room " + roomName.trim());
+        }
+    }
+
+    private void joinRoom() {
+        String selectedRoom = gameRoomList.getSelectedValue();
+        if (selectedRoom != null) {
+            out.println("/join_room " + selectedRoom);
+        } else {
+            JOptionPane.showMessageDialog(this, "입장할 방을 선택하세요.", "경고", JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    @Override
+    public void run() {
+        String message;
+        try {
+            while ((message = in.readLine()) != null) {
+                if (message.startsWith("/room ")) {
+                    updateRoomList(message.substring(6));
+                } else {
+                    chatArea.append(message + "\n");
+                }
+            }
+        } catch (IOException e) {
+            chatArea.append("서버 연결이 종료되었습니다.\n");
+        }
+    }
+
+    private void updateRoomList(String roomList) {
+        SwingUtilities.invokeLater(() -> {
+            roomListModel.clear();
+            for (String room : roomList.split(",")) {
+                roomListModel.addElement(room.trim());
+            }
+        });
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(LobbyFrame::new);
+        SwingUtilities.invokeLater(() -> new LobbyFrame("127.0.0.1", 8080));
     }
 }

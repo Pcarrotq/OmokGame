@@ -7,6 +7,7 @@ public class ClientSocket {
     private Socket socket;
     private BufferedReader input;
     private PrintWriter output;
+    private String username;
 
     public ClientSocket(Socket socket) throws IOException {
         this.socket = socket;
@@ -20,6 +21,14 @@ public class ClientSocket {
 
     public void sendMessage(String message) {
         output.println(message);
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getUsername() {
+        return username;
     }
 
     public void close() throws IOException {
