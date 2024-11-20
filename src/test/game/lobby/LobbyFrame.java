@@ -2,6 +2,9 @@ package test.game.lobby;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+
+import test.game.gui.GUI;
+
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
@@ -43,6 +46,7 @@ public class LobbyFrame extends JFrame implements Runnable {
 
         JPanel buttonPanel = new JPanel(new GridLayout(2, 1, 5, 5)); // 버튼 간 간격
         JButton createGameButton = new JButton("게임 생성 버튼");
+        createGameButton.addActionListener(e -> createGame());
         JButton joinGameButton = new JButton("게임 입장 버튼");
         buttonPanel.add(createGameButton);
         buttonPanel.add(joinGameButton);
@@ -98,6 +102,24 @@ public class LobbyFrame extends JFrame implements Runnable {
         } catch (IOException e) {
             JOptionPane.showMessageDialog(this, "서버에 연결할 수 없습니다.", "Error", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
+        }
+    }
+    
+    private void createGame() {
+        String roomName = JOptionPane.showInputDialog(this, "방 이름을 입력하세요:");
+        if (roomName != null && !roomName.trim().isEmpty()) {
+            SwingUtilities.invokeLater(() -> {
+                JFrame gameFrame = new JFrame("오목 게임"); // 새로운 JFrame 생성
+                GUI gameGui = new GUI("방 이름: " + roomName); // GUI 생성
+                
+                gameGui.setPlayer1Profile("Your Character"); // 기본 캐릭터 설정 예제
+                
+                gameFrame.add(gameGui); // GUI 추가
+                gameFrame.setSize(1500, 1000); // JFrame 크기 설정
+                gameFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                gameFrame.setTitle("방 이름: " + roomName); // 제목 설정
+                gameFrame.setVisible(true); // JFrame 보이기
+            });
         }
     }
 

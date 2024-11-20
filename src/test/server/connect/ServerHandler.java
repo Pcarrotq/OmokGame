@@ -8,7 +8,7 @@ public class ServerHandler {
     private ServerSocket serverSocket;
     private List<ClientSocket> clients;
     private boolean running;
-    private Map<String, List<ClientSocket>> rooms; // 방 이름과 클라이언트 리스트 매핑
+    private Map<String, List<ClientSocket>> rooms = new HashMap<>(); // 방 이름과 클라이언트 리스트 매핑
 
     public ServerHandler() {
         clients = new ArrayList<>();
@@ -75,11 +75,17 @@ public class ServerHandler {
         }
     }
 
+ // 방 생성 및 브로드캐스트
     private void createRoom(ClientSocket client, String roomName) {
-        rooms.putIfAbsent(roomName, new ArrayList<>());
-        rooms.get(roomName).add(client);
-        broadcastRoomList();
-        System.out.println(client.getUsername() + " created room: " + roomName);
+        synchronized (rooms) {
+            if (!rooms.containsKey(roomName)) {
+                rooms.put(roomName, new ArrayList<>()); // 방 추가
+                broadcastRoomList(); // 방 목록 브로드캐스트
+                System.out.println(client.getUsername() + " created room: " + roomName);
+            } else {
+                client.sendMessage("이미 존재하는 방입니다.");
+            }
+        }
     }
 
     private void joinRoom(ClientSocket client, String roomName) {
@@ -97,10 +103,13 @@ public class ServerHandler {
         }
     }
 
+ // 방 목록 브로드캐스트
     private void broadcastRoomList() {
-        String roomList = String.join(",", rooms.keySet());
-        for (ClientSocket client : clients) {
-            client.sendMessage("/room " + roomList);
+        String roomList = String.join(",", rooms.keySet()); // 방 이름들을 ','로 연결
+        synchronized (clients) {
+            for (ClientSocket client : clients) {
+                client.sendMessage("/room " + roomList);
+            }
         }
     }
 
