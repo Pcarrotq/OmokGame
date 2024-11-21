@@ -3,8 +3,7 @@ package test.game.gui;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.Socket;
 
 import javax.swing.*;
@@ -18,18 +17,22 @@ public class GUI extends JPanel {
     private Container c;
     private Map map;
     private DrawBoard d;
+    
     private JTextPane txtDisplay;
     private JPanel pSouth;
     private JTextField txtInput;
     private JButton btnSend;
-    private JButton btnExit;
     private JButton btnEmoji;
+    
+    private JButton btnExit;
+    
     private JLabel player1Profile;
     private JLabel player1Label;
     private JLabel player2Profile;
     private JLabel player2Label;
-    private JLabel turnDisplay;
     private EmojiMap emojiMap;
+    
+    private JLabel turnDisplay;
 
     public GUI(String title) {
         setLayout(new BorderLayout());

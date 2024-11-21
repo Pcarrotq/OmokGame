@@ -4,6 +4,7 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 
 import test.game.gui.GUI;
+import test.main.account.Login;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -95,10 +96,22 @@ public class LobbyFrame extends JFrame implements Runnable {
     }
 
     private void initNet(String ip, int port) {
+        if (socket != null && socket.isConnected()) {
+            return; // 이미 연결된 경우 다시 연결하지 않음
+        }
         try {
             socket = new Socket(ip, port);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())), true);
+
+            // 서버에 사용자 이름 전송
+            String username = JOptionPane.showInputDialog(this, "사용자 이름을 입력하세요:");
+            if (username != null && !username.trim().isEmpty()) {
+                out.println("/set_username " + username.trim());
+                System.out.println("사용자 이름 전송됨: " + username.trim());
+            } else {
+                System.out.println("사용자 이름 설정 실패: null 또는 빈 값");
+            }
         } catch (IOException e) {
             JOptionPane.showMessageDialog(this, "서버에 연결할 수 없습니다.", "Error", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
@@ -132,35 +145,68 @@ public class LobbyFrame extends JFrame implements Runnable {
     }
 
     private void createRoom() {
+        System.out.println("createRoom 호출됨");
+
+        // 로그인한 사용자 ID 가져오기
+        String userId = Login.getLoggedInUserId();
+        if (userId == null || userId.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "로그인이 필요합니다.", "오류", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        System.out.println("현재 로그인한 사용자 ID: " + userId);
+
+        // 방 이름 입력 창 표시 (한 번만 호출)
         String roomName = JOptionPane.showInputDialog(this, "방 이름을 입력하세요:");
         if (roomName != null && !roomName.trim().isEmpty()) {
-            out.println("/create_room " + roomName.trim());
+            out.println("/create_room " + userId + " " + roomName.trim());
+            openCharacterSelectionScreen(roomName);
         }
+    }
+    
+    private void openCharacterSelectionScreen(String roomName) {
+        SwingUtilities.invokeLater(() -> {
+            new CharacterSelectionScreen(selectedCharacter -> {
+                System.out.println("캐릭터 선택됨: " + selectedCharacter);
+
+                // 캐릭터 선택 후 게임 화면 표시
+                JFrame gameFrame = new JFrame("방 이름: " + roomName);
+                GUI gameGui = new GUI("방 이름: " + roomName);
+                gameGui.setPlayer1Profile(selectedCharacter);
+
+                gameFrame.add(gameGui);
+                gameFrame.setSize(1500, 1000);
+                gameFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                gameFrame.setVisible(true);
+
+                System.out.println("게임 화면 표시됨: 방 이름 " + roomName);
+            });
+        });
     }
 
     private void joinRoom() {
-        String roomName = JOptionPane.showInputDialog(this, "방 이름을 입력하세요:");
-        if (roomName != null && !roomName.trim().isEmpty()) {
-            // Lobby 창 닫기
-            dispose();
-
-            // CharacterSelectionScreen 화면 열기
-            SwingUtilities.invokeLater(() -> {
-                new CharacterSelectionScreen(selectedCharacter -> {
-                    // 캐릭터 선택 후 GUI 화면 열기
-                    SwingUtilities.invokeLater(() -> {
-                        JFrame gameFrame = new JFrame("오목 게임");
-                        GUI gameGui = new GUI("방 이름: " + roomName);
-                        gameGui.setPlayer1Profile(selectedCharacter);
-
-                        gameFrame.add(gameGui);
-                        gameFrame.setSize(1500, 1000);
-                        gameFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                        gameFrame.setVisible(true);
-                    });
-                });
-            });
+        String selectedRoom = gameRoomList.getSelectedValue();
+        if (selectedRoom == null) {
+            JOptionPane.showMessageDialog(this, "방을 선택하세요!", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
         }
+
+        // 서버에 방 입장 명령 전송
+        out.println("/join_room " + selectedRoom.trim());
+
+        // 캐릭터 선택 창 표시
+        SwingUtilities.invokeLater(() -> {
+            new CharacterSelectionScreen(selectedCharacter -> {
+                // 캐릭터 선택 후 게임 화면 표시
+                JFrame gameFrame = new JFrame("오목 게임");
+                GUI gameGui = new GUI("방 이름: " + selectedRoom);
+                gameGui.setPlayer1Profile(selectedCharacter);
+
+                gameFrame.add(gameGui);
+                gameFrame.setSize(1500, 1000);
+                gameFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                gameFrame.setVisible(true);
+            });
+        });
     }
 
     @Override
@@ -180,12 +226,12 @@ public class LobbyFrame extends JFrame implements Runnable {
     }
 
     private void updateRoomList(String roomList) {
-        SwingUtilities.invokeLater(() -> {
-            roomListModel.clear();
-            for (String room : roomList.split(",")) {
-                roomListModel.addElement(room.trim());
-            }
-        });
+        DefaultListModel<String> model = new DefaultListModel<>();
+        for (String room : roomList.split(",")) {
+            model.addElement(room);
+        }
+        gameRoomList.setModel(model);
+        System.out.println("방 목록 업데이트됨: " + roomList);
     }
 
     public static void main(String[] args) {

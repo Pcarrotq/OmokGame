@@ -54,18 +54,14 @@ public class CharacterSelectionScreen extends JFrame {
 
         button.addActionListener(e -> {
             String selectedCharacter = "Character " + (index + 1);
+            System.out.println("캐릭터 버튼 클릭됨: " + selectedCharacter);
+
             if (selectionListener != null) {
                 selectionListener.accept(selectedCharacter); // 선택된 캐릭터 정보를 전달
             }
 
-            // 게임 GUI를 열고 캐릭터 정보를 설정
-            SwingUtilities.invokeLater(() -> {
-                GUI gameGui = new GUI("오목 게임");
-                gameGui.setPlayer1Profile(selectedCharacter);
-                gameGui.setVisible(true);
-            });
-
             dispose(); // 캐릭터 선택 창 닫기
+            System.out.println("캐릭터 선택 창 닫힘");
         });
 
         return button;
@@ -98,23 +94,5 @@ public class CharacterSelectionScreen extends JFrame {
 
         g2d.dispose();
         return new ImageIcon(image);
-    }
-    
-    private void openCharacterSelection() {
-        new CharacterSelectionScreen(selectedCharacter -> {
-            SwingUtilities.invokeLater(() -> {
-                GUI gameGui = new GUI("오목 게임");
-                gameGui.setPlayer1Profile(selectedCharacter);
-                gameGui.setVisible(true);
-                dispose(); // GameLobbyScreen 닫기
-            });
-        }).setVisible(true);
-    }
-    
-    private void onCharacterSelected(String character) {
-        if (selectionListener != null) {
-            selectionListener.accept(character);
-            dispose(); // 창 닫기
-        }
     }
 }

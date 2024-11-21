@@ -47,7 +47,13 @@ public class ServerHandler {
         try {
             String message;
             while ((message = client.readMessage()) != null) {
-                if (message.startsWith("/create_room ")) {
+            	System.out.println("클라이언트로부터 메시지 수신: " + message);
+            	
+                if (message.startsWith("/set_username ")) {
+                    String username = message.substring(13).trim();
+                    client.setUsername(username);
+                    System.out.println("클라이언트 사용자 이름 설정됨: " + username);
+                } else if (message.startsWith("/create_room ")) {
                     String roomName = message.substring(13).trim();
                     createRoom(client, roomName);
                 } else if (message.startsWith("/remove_room ")) {
@@ -62,29 +68,35 @@ public class ServerHandler {
                 }
             }
         } catch (IOException e) {
-            if (e.getMessage().equals("Socket closed")) {
-                System.out.println("클라이언트 연결 종료 (소켓 닫힘)");
-            } else {
-                e.printStackTrace();
-            }
+        	System.out.println("클라이언트 연결 종료: " + e.getMessage());
+            e.printStackTrace();
         } finally {
             clients.remove(client);
             try {
                 client.close();
+                System.out.println("클라이언트 소켓 닫힘");
             } catch (IOException e) {
                 System.err.println("클라이언트 소켓 닫기 실패: " + e.getMessage());
             }
-            System.out.println("클라이언트 연결 종료");
         }
     }
 
 	// 방 생성 및 브로드캐스트
-    private void createRoom(ClientSocket client, String roomName) {
+    private void createRoom(ClientSocket client, String message) {
         synchronized (rooms) {
+            String[] parts = message.split(" ", 2);
+            if (parts.length < 2) {
+                client.sendMessage("방 이름이 필요합니다.");
+                return;
+            }
+
+            String userId = parts[0];
+            String roomName = parts[1];
+
             if (!rooms.containsKey(roomName)) {
-                rooms.put(roomName, new ArrayList<>()); // 방 추가
-                broadcastRoomList(); // 방 목록 브로드캐스트
-                System.out.println(client.getUsername() + " created room: " + roomName);
+                rooms.put(roomName, new ArrayList<>());
+                broadcastRoomList();
+                System.out.println(userId + " created room: " + roomName);
             } else {
                 client.sendMessage("이미 존재하는 방입니다.");
             }

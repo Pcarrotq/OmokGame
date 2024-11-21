@@ -14,6 +14,7 @@ public class Login extends JFrame implements ActionListener {
     JTextField idTextField;
     JPasswordField passTextField;
     JButton loginButton, idSearchBtn, passwordSearchBtn;
+    JComboBox<String> searchOptions = new JComboBox<>(new String[]{"이메일", "전화번호", "이름"});
 
     Font font = new Font("회원가입", Font.BOLD, 40);
     
@@ -53,18 +54,6 @@ public class Login extends JFrame implements ActionListener {
         c.gridx = 1;
         c.gridy = 0;
         gridBagidInfo.add(idTextField, c);
-        
-        idSearchBtn = new JButton("아이디 찾기");
-        idSearchBtn.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                findId();
-            }
-        });
-        c.insets = new Insets(0, 5, 0, 0);
-        c.gridx = 2;
-        c.gridy = 0;
-        gridBagidInfo.add(idSearchBtn, c);
 
         JLabel passLabel = new JLabel("비밀번호 : ");
         c.fill = GridBagConstraints.HORIZONTAL;
@@ -79,34 +68,47 @@ public class Login extends JFrame implements ActionListener {
         c.gridy = 1;
         gridBagidInfo.add(passTextField, c);
         
+        JPanel searchPanel = new JPanel();
+        
+        idSearchBtn = new JButton("아이디 찾기");
+        idSearchBtn.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                createIdSearchUI();
+            }
+        });
+        c.insets = new Insets(0, 5, 0, 0);
+        c.gridx = 0;
+        c.gridy = 0;
+        searchPanel.add(idSearchBtn);
+        
         passwordSearchBtn = new JButton("비밀번호 찾기");
         passwordSearchBtn.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                findPassword();
+                createPasswordSearchUI();
             }
         });
         c.insets = new Insets(20, 5, 0, 0);
-        c.gridx = 2;
+        c.gridx = 0;
         c.gridy = 1;
-        gridBagidInfo.add(passwordSearchBtn, c);
+        searchPanel.add(passwordSearchBtn);
 
-        // 로그인 버튼 추가
         loginButton = new JButton("로그인");
-        loginButton.addActionListener(this); // 액션 리스너 추가
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.add(loginButton); // 버튼을 패널에 추가
+        loginButton.addActionListener(this);
         
-        // 패널을 mainPanel에 추가
+        JPanel buttonPanel = new JPanel();
+        
+        buttonPanel.add(loginButton);
+
         mainPanel.add(centerPanel);
         mainPanel.add(gridBagidInfo);
-        mainPanel.add(buttonPanel); // 버튼 패널 추가
+        mainPanel.add(buttonPanel);
+        mainPanel.add(searchPanel);
 
-        // JFrame에 mainPanel 추가
         add(mainPanel);
         
-        // 화면에 프레임을 표시
-        setVisible(true);
+        setVisible(true); // 화면에 프레임을 표시
     }
 
     @Override
@@ -177,53 +179,223 @@ public class Login extends JFrame implements ActionListener {
     }
     
     // 아이디 찾기 메소드
-    private void findId() {
-        String email = JOptionPane.showInputDialog(this, "이메일을 입력하세요:");
-        if (email != null && !email.isEmpty()) {
-            try {
-                String query = "SELECT id FROM user_info WHERE email = ?";
-                PreparedStatement pstmt = lp.getConnection().prepareStatement(query);
-                pstmt.setString(1, email);
-                ResultSet rs = pstmt.executeQuery();
-                
-                if (rs.next()) {
-                    String userId = rs.getString("id");
-                    JOptionPane.showMessageDialog(this, "아이디: " + userId);
-                } else {
-                    JOptionPane.showMessageDialog(this, "해당 이메일로 등록된 아이디가 없습니다.");
-                }
-            } catch (SQLException ex) {
-                ex.printStackTrace();
-                JOptionPane.showMessageDialog(this, "오류가 발생했습니다. 다시 시도해주세요.");
+    private void searchId(String selectedOption, String inputValue) {
+        try {
+            String query = null;
+            switch (selectedOption) {
+                case "이메일":
+                    query = "SELECT id FROM user_info WHERE email = ?";
+                    break;
+                case "전화번호":
+                    query = "SELECT id FROM user_info WHERE phone_number = ?";
+                    break;
+                case "이름":
+                    query = "SELECT id FROM user_info WHERE name = ?";
+                    break;
             }
-        } else {
-            JOptionPane.showMessageDialog(this, "이메일을 입력하세요.");
+
+            PreparedStatement pstmt = lp.getConnection().prepareStatement(query);
+            pstmt.setString(1, inputValue);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                String userId = rs.getString("id");
+                JOptionPane.showMessageDialog(null, "아이디: " + userId);
+            } else {
+                JOptionPane.showMessageDialog(null, "해당 정보로 등록된 아이디가 없습니다.");
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(null, "오류가 발생했습니다. 다시 시도해주세요.");
         }
     }
     
     // 비밀번호 찾기 메소드
-    private void findPassword() {
-        String userId = JOptionPane.showInputDialog(this, "아이디를 입력하세요:");
-        if (userId != null && !userId.isEmpty()) {
-            try {
-                String query = "SELECT password FROM user_info WHERE id = ?";
-                PreparedStatement pstmt = lp.getConnection().prepareStatement(query);
-                pstmt.setString(1, userId);
-                ResultSet rs = pstmt.executeQuery();
-                
-                if (rs.next()) {
-                    String password = rs.getString("password");
-                    JOptionPane.showMessageDialog(this, "비밀번호: " + password);
-                } else {
-                    JOptionPane.showMessageDialog(this, "해당 아이디로 등록된 비밀번호가 없습니다.");
-                }
-            } catch (SQLException ex) {
-                ex.printStackTrace();
-                JOptionPane.showMessageDialog(this, "오류가 발생했습니다. 다시 시도해주세요.");
+    private void searchPassword(String selectedOption, String inputValue) {
+        try {
+            String query = null;
+            switch (selectedOption) {
+                case "이메일":
+                    query = "SELECT password FROM user_info WHERE email = ?";
+                    break;
+                case "전화번호":
+                    query = "SELECT password FROM user_info WHERE phone_number = ?";
+                    break;
+                case "이름":
+                    query = "SELECT password FROM user_info WHERE name = ?";
+                    break;
             }
-        } else {
-            JOptionPane.showMessageDialog(this, "아이디를 입력하세요.");
+
+            PreparedStatement pstmt = lp.getConnection().prepareStatement(query);
+            pstmt.setString(1, inputValue);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                String password = rs.getString("password");
+                JOptionPane.showMessageDialog(null, "비밀번호: " + password);
+            } else {
+                JOptionPane.showMessageDialog(null, "해당 정보로 등록된 비밀번호가 없습니다.");
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(null, "오류가 발생했습니다. 다시 시도해주세요.");
         }
+    }
+    
+ // 아이디 찾기 UI 패널 구성
+    private void createIdSearchUI() {
+        JFrame frame = new JFrame("아이디 찾기");
+        frame.setSize(400, 300);
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+        // 메인 패널 설정
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 10)); // BorderLayout으로 간격 추가
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // 패널 외부 여백
+
+        // 상단 제목 패널
+        JPanel titlePanel = new JPanel();
+        JLabel titleLabel = new JLabel("아이디 찾기");
+        titleLabel.setFont(new Font("맑은 고딕", Font.BOLD, 20));
+        titlePanel.add(titleLabel);
+
+        // 중앙 입력 패널
+        JPanel inputPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10); // 컴포넌트 간 여백
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // 검색 옵션 라벨 및 콤보박스
+        JLabel optionLabel = new JLabel("검색 옵션:");
+        optionLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        inputPanel.add(optionLabel, gbc);
+
+        JComboBox<String> comboBox = new JComboBox<>(new String[]{"이메일", "전화번호", "이름"});
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        inputPanel.add(comboBox, gbc);
+
+        // 입력 필드 라벨 및 텍스트 필드
+        JLabel inputLabel = new JLabel("입력:");
+        inputLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.gridwidth = 1;
+        inputPanel.add(inputLabel, gbc);
+
+        JTextField inputField = new JTextField(20);
+        gbc.gridx = 1;
+        gbc.gridy = 1;
+        gbc.gridwidth = 2;
+        inputPanel.add(inputField, gbc);
+
+        // 확인 버튼
+        JButton searchButton = new JButton("확인");
+        searchButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String selectedOption = (String) comboBox.getSelectedItem();
+                String inputValue = inputField.getText();
+
+                if (inputValue.isEmpty()) {
+                    JOptionPane.showMessageDialog(frame, selectedOption + "을(를) 입력하세요.");
+                } else {
+                    searchId(selectedOption, inputValue); // 아이디 검색 로직 호출
+                }
+            }
+        });
+
+        gbc.gridx = 1;
+        gbc.gridy = 2;
+        gbc.gridwidth = 1;
+        inputPanel.add(searchButton, gbc);
+
+        // 패널 구성
+        mainPanel.add(titlePanel, BorderLayout.NORTH);
+        mainPanel.add(inputPanel, BorderLayout.CENTER);
+
+        frame.add(mainPanel);
+        frame.setVisible(true);
+    }
+
+    // 비밀번호 찾기 UI 패널 구성
+    private void createPasswordSearchUI() {
+        JFrame frame = new JFrame("비밀번호 찾기");
+        frame.setSize(400, 300);
+        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+        // 메인 패널 설정
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // 외부 여백 설정
+
+        // 상단 제목 패널
+        JPanel titlePanel = new JPanel();
+        JLabel titleLabel = new JLabel("비밀번호 찾기");
+        titleLabel.setFont(new Font("맑은 고딕", Font.BOLD, 20));
+        titlePanel.add(titleLabel);
+
+        // 중앙 입력 패널
+        JPanel inputPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10); // 컴포넌트 간 여백
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // 검색 옵션 라벨 및 콤보박스
+        JLabel optionLabel = new JLabel("검색 옵션:");
+        optionLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        inputPanel.add(optionLabel, gbc);
+
+        JComboBox<String> comboBox = new JComboBox<>(new String[]{"이메일", "전화번호", "이름"});
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        inputPanel.add(comboBox, gbc);
+
+        // 입력 필드 라벨 및 텍스트 필드
+        JLabel inputLabel = new JLabel("입력:");
+        inputLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.gridwidth = 1;
+        inputPanel.add(inputLabel, gbc);
+
+        JTextField inputField = new JTextField(20);
+        gbc.gridx = 1;
+        gbc.gridy = 1;
+        gbc.gridwidth = 2;
+        inputPanel.add(inputField, gbc);
+
+        // 확인 버튼
+        JButton searchButton = new JButton("확인");
+        searchButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String selectedOption = (String) comboBox.getSelectedItem();
+                String inputValue = inputField.getText();
+
+                if (inputValue.isEmpty()) {
+                    JOptionPane.showMessageDialog(frame, selectedOption + "을(를) 입력하세요.");
+                } else {
+                    searchPassword(selectedOption, inputValue); // 비밀번호 검색 로직 호출
+                }
+            }
+        });
+
+        gbc.gridx = 1;
+        gbc.gridy = 2;
+        gbc.gridwidth = 1;
+        inputPanel.add(searchButton, gbc);
+
+        // 패널 구성
+        mainPanel.add(titlePanel, BorderLayout.NORTH);
+        mainPanel.add(inputPanel, BorderLayout.CENTER);
+
+        frame.add(mainPanel);
+        frame.setVisible(true);
     }
 
     // 메인 메서드

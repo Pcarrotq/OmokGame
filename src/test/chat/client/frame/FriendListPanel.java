@@ -19,7 +19,7 @@ public class FriendListPanel extends JPanel {
 		// setBackground(ColorSet.talkBackgroundColor);
 
 		Controller controller = Controller.getInstance();
-		friends = controller.friendList();
+		// friends = controller.friendList(); // 오류 발생
 		int friendNum = friends.size();
 
 		setLayout(new GridLayout(friendNum, 0));

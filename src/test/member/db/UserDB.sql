@@ -21,7 +21,7 @@ SELECT id, password FROM user_info;
 SELECT id, phone_number FROM user_info;
 SELECT id, nickname FROM user_info;
 SELECT id, address FROM user_info;
-SELECT id, email FROM user_info;
+SELECT id, email, phone_number, name FROM user_info;
 
 ALTER TABLE user_info ADD (isBlocked NUMBER(1));
 UPDATE user_info SET isBlocked = 0 WHERE isBlocked IS NULL;

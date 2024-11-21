@@ -34,4 +34,21 @@ public class ClientSocket {
     public void close() throws IOException {
         socket.close();
     }
+    
+    @Override
+    protected void finalize() throws Throwable {
+        try {
+            if (socket != null && !socket.isClosed()) {
+                socket.close();
+                System.out.println("클라이언트 소켓 닫힘");
+            }
+        } finally {
+            super.finalize();
+        }
+    }
+
+	public void send(Message message) {
+		// TODO Auto-generated method stub
+		
+	}
 }
