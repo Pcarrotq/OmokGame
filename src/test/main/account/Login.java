@@ -15,6 +15,9 @@ public class Login extends JFrame implements ActionListener {
     JPasswordField passTextField;
     JButton loginButton, idSearchBtn, passwordSearchBtn;
     JComboBox<String> searchOptions = new JComboBox<>(new String[]{"이메일", "전화번호", "이름"});
+    
+    private JButton toggleButton; // 눈 모양 버튼
+    private boolean isPasswordVisible = false; // 비밀번호 표시 여부
 
     Font font = new Font("회원가입", Font.BOLD, 40);
     
@@ -93,6 +96,21 @@ public class Login extends JFrame implements ActionListener {
         c.gridx = 0;
         c.gridy = 1;
         searchPanel.add(passwordSearchBtn);
+        
+     // 눈 모양 버튼 생성
+        toggleButton = new JButton("👁"); // 아이콘 또는 텍스트
+        toggleButton.setPreferredSize(new Dimension(50, 20)); // 버튼 크기 설정
+        toggleButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                togglePasswordVisibility();
+            }
+        });
+        
+     // 비밀번호 입력 필드 옆에 버튼 배치
+        c.gridx = 2; // 비밀번호 입력 필드 오른쪽에 배치
+        c.gridy = 1;
+        gridBagidInfo.add(toggleButton, c);
 
         loginButton = new JButton("로그인");
         loginButton.addActionListener(this);
@@ -396,6 +414,17 @@ public class Login extends JFrame implements ActionListener {
 
         frame.add(mainPanel);
         frame.setVisible(true);
+    }
+    
+    private void togglePasswordVisibility() {
+        if (isPasswordVisible) {
+            passTextField.setEchoChar('●'); // 비밀번호 가리기
+            toggleButton.setText("👁");
+        } else {
+            passTextField.setEchoChar((char) 0); // 비밀번호 보이기
+            toggleButton.setText("🙈");
+        }
+        isPasswordVisible = !isPasswordVisible; // 상태 변경
     }
 
     // 메인 메서드
