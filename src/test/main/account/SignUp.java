@@ -51,6 +51,7 @@ public class SignUp extends JFrame implements ActionListener {
 	JButton addressBtn;
 	JButton postalCodeBtn;
 	JButton defaultProfileButton;
+	JButton psToggleButton, psrToggleButton;
 
     // 라벨 컴포넌트 - 글자 띄워줌
     JLabel titleLabel;
@@ -67,6 +68,8 @@ public class SignUp extends JFrame implements ActionListener {
     ProfilePictureSelector profilePictureSelector;
     Font font = new Font("회원가입", Font.BOLD, 40);
     
+    private boolean isPasswordVisible = false; // 비밀번호 표시 여부
+    
     String years = "", months = "", days = "", id = "", pass = "", passRe = "", name = "", sex = "", nickname = "";
     String phoneFront = "", phone = "", email = "", gender = "", postalCode = "", address = "", detailedAddress = "";
     
@@ -78,7 +81,7 @@ public class SignUp extends JFrame implements ActionListener {
     	
         setTitle("회원가입");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // 창 닫기 버튼 활성화
-        // setSize(1500, 1000); // 창 크기 설정
+        setSize(900, 900); // 창 크기 설정
         getContentPane().setLayout(new GridBagLayout());
         
         GridBagConstraints gbc = new GridBagConstraints();
@@ -95,7 +98,7 @@ public class SignUp extends JFrame implements ActionListener {
         titleLabel = new JLabel("회원가입 화면");
         titleLabel.setFont(font);
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        titleLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 10, 10, 10));
         
         gbc.gridx = 0;
         gbc.gridy = 0;
@@ -181,15 +184,37 @@ public class SignUp extends JFrame implements ActionListener {
             }
         };
         strengthBar.setPreferredSize(new Dimension(150, 20));
+        psToggleButton = new JButton("👁"); // 아이콘 또는 텍스트
+        psToggleButton.setPreferredSize(new Dimension(50, 20)); // 버튼 크기 설정
+        psToggleButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                togglePasswordVisibility();
+            }
+        });
+
         passPanel = new JPanel();
         passPanel.add(passTf);
+        passPanel.add(psToggleButton);
         passPanel.add(strengthBar);
         addField(formPanel, gbc, "패스워드:", passPanel, 3);
 
         
         passReTf = new JPasswordField(10);
         passRePanel = new JPanel();
+        
+        psrToggleButton = new JButton("👁"); // 아이콘 또는 텍스트
+        psrToggleButton.setPreferredSize(new Dimension(50, 20)); // 버튼 크기 설정
+        psrToggleButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+            	reTogglePasswordVisibility();
+            }
+        });
+        
         passRePanel.add(passReTf);
+        passRePanel.add(psrToggleButton);
+        
         addField(formPanel, gbc, "패스워드 확인:", passRePanel, 4);
         
 
@@ -292,7 +317,7 @@ public class SignUp extends JFrame implements ActionListener {
         // JFrame에 메인 패널 추가
         add(mainPanel);
 
-        pack();
+        // pack();
         
         // 창을 화면에 표시
         setVisible(true);
@@ -637,6 +662,28 @@ public class SignUp extends JFrame implements ActionListener {
         } else {
             return "Very Weak";
         }
+    }
+    
+    private void togglePasswordVisibility() {
+        if (isPasswordVisible) {
+        	passTf.setEchoChar('●'); // 비밀번호 가리기
+            psToggleButton.setText("👁");
+        } else {
+        	passTf.setEchoChar((char) 0); // 비밀번호 보이기
+        	psToggleButton.setText("🙈");
+        }
+        isPasswordVisible = !isPasswordVisible; // 상태 변경
+    }
+    
+    private void reTogglePasswordVisibility() {
+        if (isPasswordVisible) {
+        	passReTf.setEchoChar('●'); // 비밀번호 가리기
+            psrToggleButton.setText("👁");
+        } else {
+        	passReTf.setEchoChar((char) 0); // 비밀번호 보이기
+        	psrToggleButton.setText("🙈");
+        }
+        isPasswordVisible = !isPasswordVisible; // 상태 변경
     }
     
     // 우편번호, 주소 필드를 업데이트하는 메서드

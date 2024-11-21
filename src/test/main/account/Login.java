@@ -97,7 +97,7 @@ public class Login extends JFrame implements ActionListener {
         c.gridy = 1;
         searchPanel.add(passwordSearchBtn);
         
-     // 눈 모양 버튼 생성
+        // 눈 모양 버튼 생성
         toggleButton = new JButton("👁"); // 아이콘 또는 텍스트
         toggleButton.setPreferredSize(new Dimension(50, 20)); // 버튼 크기 설정
         toggleButton.addActionListener(new ActionListener() {
@@ -107,7 +107,7 @@ public class Login extends JFrame implements ActionListener {
             }
         });
         
-     // 비밀번호 입력 필드 옆에 버튼 배치
+        // 비밀번호 입력 필드 옆에 버튼 배치
         c.gridx = 2; // 비밀번호 입력 필드 오른쪽에 배치
         c.gridy = 1;
         gridBagidInfo.add(toggleButton, c);
