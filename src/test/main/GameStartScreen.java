@@ -12,6 +12,7 @@ import com.google.gson.*;
 import test.admin.AdminScreenMain;
 import test.game.gui.GUI;
 import test.game.lobby.CharacterSelectionScreen;
+import test.game.lobby.LobbyFrame;
 import test.main.account.Login;
 import test.main.account.SignUp;
 import test.member.db.DBConnection;
@@ -128,23 +129,10 @@ public class GameStartScreen extends JFrame {
         JButton startButton = new JButton("Start");
         startButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         startButton.setMaximumSize(new Dimension(100, 30));
-        startButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // 캐릭터 선택 창 열기
-                CharacterSelectionScreen characterSelection = new CharacterSelectionScreen(selectedCharacter -> {
-                    // 선택된 캐릭터 정보를 받아 게임 GUI 설정
-                    GUI gameGui = new GUI("오목 게임");
-                    gameGui.setPlayer1Profile(selectedCharacter); // 왼쪽 프로필에 설정
-
-                    // 기존 화면 제거하고 새로운 게임 화면 추가
-                    getContentPane().removeAll();
-                    getContentPane().add(gameGui);
-                    revalidate();
-                    repaint();
-                });
-                characterSelection.setVisible(true);
-            }
+        startButton.addActionListener(e -> {
+            // GameStartScreen에서 LobbyFrame으로 이동
+            new LobbyFrame("127.0.0.1", 8080); // IP와 포트는 필요에 따라 변경
+            dispose(); // GameStartScreen 닫기
         });
         mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
         mainPanel.add(startButton);
