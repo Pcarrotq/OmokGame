@@ -134,14 +134,21 @@ public class AdminScreenMain extends JFrame {
         JPanel memberButtonPanel = new JPanel();
         memberButtonPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 10, 10));
       
-        JButton addButton = new JButton("추가"); // 회원 추가 버튼
+        // JButton addButton = new JButton("추가"); // 회원 추가 버튼
         JButton openButton = new JButton("열람"); // 회원 정보 열람 버튼
         JButton editButton = new JButton("수정"); // 회원 정보 수정 버튼
+        JButton blockButton = new JButton("차단");
         JButton deleteButton = new JButton("삭제"); // 회원 차단 버튼
         
-        addButton.addActionListener(e -> MemberAdd.handleAddMember(idTf, passTf, nameTf, nicknameTf, emailLocalTf, emailDomainTf,
-                yearComboBox, monthComboBox, dayComboBox, phoneFrontComboBox, phoneMiddleTf, phoneBackTf,
-                postalCodeTf, addressTf, detailedAddressTf, maleButton, tableModel));
+        // addButton.addActionListener(e -> {
+        //    MemberAdd.handleAddMember(
+        //        idTf, passTf, nameTf, nicknameTf, emailLocalTf, emailDomainTf,
+        //        yearComboBox, monthComboBox, dayComboBox, phoneFrontComboBox, 
+        //        phoneMiddleTf, phoneBackTf, postalCodeTf, addressTf, detailedAddressTf, 
+        //        maleButton, tableModel
+        //    );
+        //    clearRightPanel(); // 패널 초기화 및 숨기기
+        // });
         
         openButton.addActionListener(e -> {
             int selectedRow = memberTable.getSelectedRow();
@@ -150,44 +157,30 @@ public class AdminScreenMain extends JFrame {
                 return;
             }
 
-            // 선택된 데이터의 ID 가져오기
             Object id = memberTable.getValueAt(selectedRow, 0);
             if (id == null) {
                 JOptionPane.showMessageDialog(this, "선택된 데이터의 ID를 가져올 수 없습니다.");
                 return;
             }
 
-            // 데이터베이스에서 해당 ID로 상세 정보 조회
             Map<String, Object> memberInfo = MemberView.getMemberDetails(id.toString());
             if (memberInfo == null || memberInfo.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "회원 정보를 가져올 수 없습니다.");
                 return;
             }
 
-            // 필드 초기화 및 데이터 설정
-            idTf.setText(memberInfo.getOrDefault("id", "").toString());
-            nameTf.setText(memberInfo.getOrDefault("name", "").toString());
-            nicknameTf.setText(memberInfo.getOrDefault("nickname", "").toString());
-            passTf.setText(memberInfo.getOrDefault("password", "").toString());
-            passReTf.setText(memberInfo.getOrDefault("password", "").toString()); // 비밀번호 확인도 동일
+            idTf.setText(memberInfo.getOrDefault("id", "") != null ? memberInfo.get("id").toString() : "");
+            nameTf.setText(memberInfo.getOrDefault("name", "") != null ? memberInfo.get("name").toString() : "");
+            nicknameTf.setText(memberInfo.getOrDefault("nickname", "") != null ? memberInfo.get("nickname").toString() : "");
+            passTf.setText(memberInfo.getOrDefault("password", "") != null ? memberInfo.get("password").toString() : "");
+            passReTf.setText(memberInfo.getOrDefault("password", "") != null ? memberInfo.get("password").toString() : "");
+            
+            // 생년월일 처리
             yearComboBox.setSelectedItem(memberInfo.getOrDefault("birth_year", "").toString());
             monthComboBox.setSelectedItem(memberInfo.getOrDefault("birth_month", "").toString());
             dayComboBox.setSelectedItem(memberInfo.getOrDefault("birth_day", "").toString());
 
-            // 전화번호 처리 (형식: 010-1234-5678)
-            String phoneNumber = memberInfo.getOrDefault("phone_number", "").toString();
-            if (!phoneNumber.isEmpty()) {
-                System.out.println("가져온 전화번호: " + phoneNumber); // 디버깅용
-                if (phoneNumber.length() == 11) { // 11자리 숫자인 경우
-                    phoneFrontComboBox.setSelectedItem(phoneNumber.substring(0, 3)); // 첫 3자리
-                    phoneMiddleTf.setText(phoneNumber.substring(3, 7)); // 중간 4자리
-                    phoneBackTf.setText(phoneNumber.substring(7)); // 마지막 4자리
-                } else {
-                    System.out.println("전화번호 형식이 올바르지 않습니다: " + phoneNumber);
-                }
-            }
-
-            // 성별 설정
+            // 성별 처리
             String gender = memberInfo.getOrDefault("gender", "").toString();
             if ("M".equals(gender)) {
                 maleButton.setSelected(true);
@@ -203,12 +196,19 @@ public class AdminScreenMain extends JFrame {
                 emailDomainTf.setText(emailParts[1]);
             }
 
-            // 주소 및 상세 주소 처리
-            postalCodeTf.setText(memberInfo.getOrDefault("postal_code", "").toString());
-            addressTf.setText(memberInfo.getOrDefault("address", "").toString());
-            detailedAddressTf.setText(memberInfo.getOrDefault("detailed_address", "").toString());
+            // 전화번호 처리
+            String phoneNumber = memberInfo.getOrDefault("phone_number", "").toString();
+            if (phoneNumber.length() == 11) {
+                phoneFrontComboBox.setSelectedItem(phoneNumber.substring(0, 3));
+                phoneMiddleTf.setText(phoneNumber.substring(3, 7));
+                phoneBackTf.setText(phoneNumber.substring(7));
+            }
 
-            // memberEditPanel 표시
+            // 주소 처리
+            postalCodeTf.setText(memberInfo.getOrDefault("postal_code", "") != null ? memberInfo.get("postal_code").toString() : "");
+            addressTf.setText(memberInfo.getOrDefault("address", "") != null ? memberInfo.get("address").toString() : "");
+            detailedAddressTf.setText(memberInfo.getOrDefault("detailed_address", "") != null ? memberInfo.get("detailed_address").toString() : "");
+
             memberEditPanel.setVisible(true);
         });
         
@@ -222,28 +222,187 @@ public class AdminScreenMain extends JFrame {
             MemberEdit.handleEditMember(idTf, nameTf, nicknameTf, emailLocalTf, emailDomainTf, phoneFrontComboBox,
                                         phoneMiddleTf, phoneBackTf, addressTf, detailedAddressTf, yearComboBox,
                                         monthComboBox, dayComboBox, maleButton, tableModel);
+            clearRightPanel();
+            JOptionPane.showMessageDialog(this, "수정이 완료되었습니다.");
         });
         
-        deleteButton.addActionListener(e -> {
+        blockButton.addActionListener(e -> {
             int selectedRow = memberTable.getSelectedRow();
             if (selectedRow == -1) {
-                JOptionPane.showMessageDialog(this, "삭제할 데이터를 선택하세요.");
+                JOptionPane.showMessageDialog(this, "차단할 유저를 선택하세요.");
                 return;
             }
 
-            // 삭제 확인
-            int confirm = JOptionPane.showConfirmDialog(this, "정말로 삭제하시겠습니까?", "삭제 확인", JOptionPane.YES_NO_OPTION);
+            String memberId = memberTable.getValueAt(selectedRow, 0).toString();
+            String reason = JOptionPane.showInputDialog(this, "차단 사유를 입력하세요:", "차단 사유", JOptionPane.PLAIN_MESSAGE);
+
+            if (reason != null && !reason.trim().isEmpty()) {
+                boolean success = MemberBlock.blockMember(memberId, reason);
+                if (success) {
+                    JOptionPane.showMessageDialog(this, "유저가 성공적으로 차단되었습니다.");
+                    tableModel.removeRow(selectedRow); // 테이블에서 제거
+                } else {
+                    JOptionPane.showMessageDialog(this, "차단 중 오류가 발생했습니다.", "오류", JOptionPane.ERROR_MESSAGE);
+                }
+            } else {
+                JOptionPane.showMessageDialog(this, "차단 사유를 입력해야 합니다.");
+            }
+        });
+
+        deleteButton.addActionListener(e -> {
+            int selectedRow = memberTable.getSelectedRow();
+            if (selectedRow == -1) {
+                JOptionPane.showMessageDialog(this, "삭제할 유저를 선택하세요.");
+                return;
+            }
+
+            String memberId = memberTable.getValueAt(selectedRow, 0).toString();
+            int confirm = JOptionPane.showConfirmDialog(this, "해당 유저를 삭제하시겠습니까?", "유저 삭제", JOptionPane.YES_NO_OPTION);
+
             if (confirm == JOptionPane.YES_OPTION) {
-                DefaultTableModel model = (DefaultTableModel) memberTable.getModel();
-                model.removeRow(selectedRow); // 선택된 행 삭제
-                System.out.println("데이터 삭제됨 - 선택된 행: " + selectedRow);
+                boolean success = MemberDelete.softDeleteMember(memberId);
+                if (success) {
+                    JOptionPane.showMessageDialog(this, "유저가 성공적으로 삭제되었습니다.");
+                    tableModel.removeRow(selectedRow); // 테이블에서 제거
+                } else {
+                    JOptionPane.showMessageDialog(this, "삭제 중 오류가 발생했습니다.", "오류", JOptionPane.ERROR_MESSAGE);
+                }
             }
         });
         
-        memberButtonPanel.add(addButton);
+        // memberButtonPanel.add(addButton);
         memberButtonPanel.add(openButton);
         memberButtonPanel.add(editButton);
+        memberButtonPanel.add(blockButton);
         memberButtonPanel.add(deleteButton);
+        
+        JButton blockedUsersButton = new JButton("차단 유저");
+        JButton deletedUsersButton = new JButton("삭제 유저");
+        
+        blockedUsersButton.addActionListener(e -> {
+            JFrame blockedFrame = new JFrame("차단 유저 목록");
+            blockedFrame.setSize(800, 600);
+            blockedFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+            DefaultTableModel blockedTableModel = new DefaultTableModel(
+                new String[]{"아이디", "이름", "닉네임", "차단 사유", "차단 날짜"}, 0);
+            JTable blockedTable = new JTable(blockedTableModel);
+
+            // 차단 유저 데이터 로드
+            try (Connection conn = DBConnection.getConnection()) {
+                String query = "SELECT id, name, nickname, reason, blocked_date FROM user_info WHERE status = 'BLOCKED'";
+                try (PreparedStatement pstmt = conn.prepareStatement(query);
+                     ResultSet rs = pstmt.executeQuery()) {
+                    while (rs.next()) {
+                        blockedTableModel.addRow(new Object[]{
+                            rs.getString("id"),
+                            rs.getString("name"),
+                            rs.getString("nickname"),
+                            rs.getString("reason"),
+                            rs.getTimestamp("blocked_date")
+                        });
+                    }
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this, "차단 유저 목록을 불러오는 중 오류가 발생했습니다.", "오류", JOptionPane.ERROR_MESSAGE);
+            }
+
+            JPanel buttonPanel = new JPanel();
+
+            JButton unblockButton = new JButton("차단 해제");
+            unblockButton.addActionListener(ev -> {
+                int selectedRow = blockedTable.getSelectedRow();
+                if (selectedRow == -1) {
+                    JOptionPane.showMessageDialog(blockedFrame, "차단 해제할 유저를 선택하세요.");
+                    return;
+                }
+
+                String memberId = blockedTable.getValueAt(selectedRow, 0).toString();
+
+                boolean success = MemberBlock.unblockMember(memberId);
+                if (success) {
+                    JOptionPane.showMessageDialog(blockedFrame, "차단이 해제되었습니다.");
+                    ((DefaultTableModel) blockedTable.getModel()).removeRow(selectedRow);
+                } else {
+                    JOptionPane.showMessageDialog(blockedFrame, "차단 해제 중 오류가 발생했습니다.", "오류", JOptionPane.ERROR_MESSAGE);
+                }
+            });
+            buttonPanel.add(unblockButton);
+
+            // 닫기 버튼 추가
+            JButton closeButton = new JButton("닫기");
+            closeButton.addActionListener(ev -> blockedFrame.dispose());
+            buttonPanel.add(closeButton);
+
+            blockedFrame.add(new JScrollPane(blockedTable), BorderLayout.CENTER);
+            blockedFrame.add(buttonPanel, BorderLayout.SOUTH);
+            blockedFrame.setVisible(true);
+        });
+
+        deletedUsersButton.addActionListener(e -> {
+            JFrame deletedFrame = new JFrame("삭제 유저 목록");
+            deletedFrame.setSize(800, 600);
+            deletedFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+            DefaultTableModel deletedTableModel = new DefaultTableModel(
+                new String[]{"아이디", "이름", "닉네임", "삭제 날짜"}, 0);
+            JTable deletedTable = new JTable(deletedTableModel);
+
+            // 삭제 유저 데이터 로드
+            try (Connection conn = DBConnection.getConnection()) {
+                String query = "SELECT id, name, nickname, deleted_date FROM user_info WHERE status = 'DELETED'";
+                try (PreparedStatement pstmt = conn.prepareStatement(query);
+                     ResultSet rs = pstmt.executeQuery()) {
+                    while (rs.next()) {
+                        deletedTableModel.addRow(new Object[]{
+                            rs.getString("id"),
+                            rs.getString("name"),
+                            rs.getString("nickname"),
+                            rs.getTimestamp("deleted_date")
+                        });
+                    }
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this, "삭제 유저 목록을 불러오는 중 오류가 발생했습니다.", "오류", JOptionPane.ERROR_MESSAGE);
+            }
+
+            JPanel buttonPanel = new JPanel();
+
+            JButton restoreButton = new JButton("복구");
+            restoreButton.addActionListener(ev -> {
+                int selectedRow = deletedTable.getSelectedRow();
+                if (selectedRow == -1) {
+                    JOptionPane.showMessageDialog(deletedFrame, "복구할 유저를 선택하세요.");
+                    return;
+                }
+
+                String memberId = deletedTable.getValueAt(selectedRow, 0).toString();
+
+                boolean success = MemberDelete.restoreMember(memberId);
+                if (success) {
+                    JOptionPane.showMessageDialog(deletedFrame, "유저가 복구되었습니다.");
+                    ((DefaultTableModel) deletedTable.getModel()).removeRow(selectedRow);
+                } else {
+                    JOptionPane.showMessageDialog(deletedFrame, "복구 중 오류가 발생했습니다.", "오류", JOptionPane.ERROR_MESSAGE);
+                }
+            });
+            buttonPanel.add(restoreButton);
+
+            // 닫기 버튼 추가
+            JButton closeButton = new JButton("닫기");
+            closeButton.addActionListener(ev -> deletedFrame.dispose());
+            buttonPanel.add(closeButton);
+
+            deletedFrame.add(new JScrollPane(deletedTable), BorderLayout.CENTER);
+            deletedFrame.add(buttonPanel, BorderLayout.SOUTH);
+            deletedFrame.setVisible(true);
+        });
+
+        // 버튼 패널에 추가
+        memberButtonPanel.add(blockedUsersButton);
+        memberButtonPanel.add(deletedUsersButton);
 
         memberListPanel.add(memberButtonPanel, BorderLayout.SOUTH);
         
@@ -493,7 +652,19 @@ public class AdminScreenMain extends JFrame {
         // Save and Cancel buttons
         JPanel buttonPanel = new JPanel();
         saveButton = new JButton("확인");
+        saveButton.addActionListener(e -> {
+            // 텍스트 필드 초기화
+            clearRightPanel();
+            JOptionPane.showMessageDialog(this, "저장이 완료되었습니다.");
+        });
         cancelButton = new JButton("취소");
+        cancelButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // 프로그램 종료
+                System.exit(0);
+            }
+        });
         buttonPanel.add(saveButton);
         buttonPanel.add(cancelButton);
 
@@ -628,6 +799,141 @@ public class AdminScreenMain extends JFrame {
     	System.out.println("updateAddressFields 호출됨: " + postalCode + ", " + address);
         postalCodeTf.setText(postalCode);  // 우편번호 필드 업데이트
         addressTf.setText(address);       // 주소 필드 업데이트
+    }
+    
+    private void clearRightPanel() {
+        // 모든 입력 필드 내용 초기화
+        idTf.setText("");
+        nameTf.setText("");
+        nicknameTf.setText("");
+        passTf.setText("");
+        passReTf.setText("");
+        emailLocalTf.setText("");
+        emailDomainTf.setText("");
+        phoneMiddleTf.setText("");
+        phoneBackTf.setText("");
+        postalCodeTf.setText("");
+        addressTf.setText("");
+        detailedAddressTf.setText("");
+        
+        // 콤보박스 초기화
+        yearComboBox.setSelectedIndex(0);
+        monthComboBox.setSelectedIndex(0);
+        dayComboBox.setSelectedIndex(0);
+        phoneFrontComboBox.setSelectedIndex(0);
+        
+        // 성별 선택 초기화
+        genderGroup.clearSelection();
+
+        // 프로필 이미지 초기화
+        profileImage = null;
+        imageLabel.setIcon(null);
+    }
+    
+    private void showUserData(String title, String tableName) {
+        JFrame userFrame = new JFrame(title);
+        userFrame.setSize(800, 600);
+        userFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+        // 데이터 테이블
+        String[] columnNames = {"아이디", "이름", "닉네임", "이메일", "처리 날짜"};
+        DefaultTableModel tableModel = new DefaultTableModel(columnNames, 0);
+        JTable userTable = new JTable(tableModel);
+
+        // 데이터 로드
+        loadUserData(tableModel, tableName);
+
+        JScrollPane scrollPane = new JScrollPane(userTable);
+        userFrame.add(scrollPane);
+        userFrame.setVisible(true);
+    }
+
+    private void loadUserData(DefaultTableModel tableModel, String tableName) {
+        tableModel.setRowCount(0); // 기존 데이터 초기화
+
+        String query = "SELECT id, name, nickname, email, "
+                     + (tableName.equals("blocked_users") ? "blocked_date AS blocked_date" : "deleted_date AS deleted_date")
+                     + " FROM user_info WHERE status = ?";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            
+            // 상태에 따라 조건 설정
+            String status = tableName.equals("blocked_users") ? "BLOCKED" : "DELETED";
+            pstmt.setString(1, status);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    String id = rs.getString("id");
+                    String name = rs.getString("name");
+                    String nickname = rs.getString("nickname");
+                    String email = rs.getString("email");
+                    String date = rs.getTimestamp(status.equals("BLOCKED") ? "blocked_date" : "deleted_date").toString();
+                    
+                    tableModel.addRow(new Object[]{id, name, nickname, email, date});
+                }
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "데이터를 불러오는 중 오류가 발생했습니다.", "오류", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    public class MemberBlock {
+        public static boolean blockMember(String memberId, String reason) {
+            try (Connection conn = DBConnection.getConnection()) {
+                String query = "UPDATE user_info SET status = 'BLOCKED', reason = ?, blocked_date = SYSDATE WHERE id = ?";
+                try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+                    pstmt.setString(1, reason);
+                    pstmt.setString(2, memberId);
+                    return pstmt.executeUpdate() > 0;
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                return false;
+            }
+        }
+
+        public static boolean unblockMember(String memberId) {
+            try (Connection conn = DBConnection.getConnection()) {
+                String query = "UPDATE user_info SET status = 'ACTIVE', blocked_date = NULL, reason = NULL WHERE id = ?";
+                try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+                    pstmt.setString(1, memberId);
+                    return pstmt.executeUpdate() > 0;
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                return false;
+            }
+        }
+    }
+
+    public class MemberDelete {
+        public static boolean softDeleteMember(String memberId) {
+            try (Connection conn = DBConnection.getConnection()) {
+                String query = "UPDATE user_info SET status = 'DELETED', deleted_date = SYSDATE WHERE id = ?";
+                try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+                    pstmt.setString(1, memberId);
+                    return pstmt.executeUpdate() > 0;
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                return false;
+            }
+        }
+
+        public static boolean restoreMember(String memberId) {
+            try (Connection conn = DBConnection.getConnection()) {
+                String query = "UPDATE user_info SET status = 'ACTIVE', deleted_date = NULL WHERE id = ?";
+                try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+                    pstmt.setString(1, memberId);
+                    return pstmt.executeUpdate() > 0;
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                return false;
+            }
+        }
     }
 
     public static void main(String[] args) {

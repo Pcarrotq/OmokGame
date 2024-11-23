@@ -48,7 +48,12 @@ public class ClientSocket {
     }
 
 	public void send(Message message) {
-		// TODO Auto-generated method stub
-		
+	    try {
+	        ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
+	        oos.writeObject(message);
+	        oos.flush();
+	    } catch (IOException e) {
+	        System.err.println("메시지 전송 실패: " + e.getMessage());
+	    }
 	}
 }

@@ -1,5 +1,8 @@
 
 /*
+ * 이 코드는 GUI에서 실시간으로 돌을 주고받는 코드인듯.
+ * 
+ * 
  * 나중에 승패 저장 코드도 짜기
  * 이기면 1 승 올라가고, 지면 1 패 올라가고.
  * 
@@ -11,7 +14,7 @@
 
 
 
-package test.game.communication;
+package test.game.stone;
 
 import java.util.Vector;
 

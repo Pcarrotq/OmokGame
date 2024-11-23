@@ -1,4 +1,4 @@
-package test.game.communication;
+package test.game.stone;
 
 import java.io.Serializable;
 

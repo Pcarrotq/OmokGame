@@ -10,27 +10,27 @@ import test.chat.controller.Controller;
 
 @SuppressWarnings("serial")
 public class ChatWindowFrame extends JFrame {
-  private String frameName;
+	private String frameName;
 
-  public ChatWindowFrame(JPanel panel, String frameName) {
-    Controller controller = Controller.getInstance();
-    
-    this.frameName = frameName;
+	public ChatWindowFrame(JPanel panel, String frameName) {
+	    Controller controller = Controller.getInstance();
+	    
+	    this.frameName = frameName;
+	
+		setTitle(frameName + "의 Chatting");
+		setBounds(1200, 250, 405, 605);
+		getContentPane().add(panel);
+		setResizable(false);
+		setVisible(true);
+		setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+		addWindowListener(new JFrameWindowClosingEventHandler(getFrameName()));
+	}
 
-	setTitle(frameName + "의 Chatting");
-	setBounds(1200, 250, 405, 605);
-	getContentPane().add(panel);
-	setResizable(false);
-	setVisible(true);
-	setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
-	addWindowListener(new JFrameWindowClosingEventHandler(getFrameName()));
-  }
+	public String getFrameName() {
+		return frameName;
+	}
 
-  public String getFrameName() {
-    return frameName;
-  }
-
-  public void setFrameName(String frameName) {
-    this.frameName = frameName;
-  }
+	public void setFrameName(String frameName) {
+		this.frameName = frameName;
+	}
 }

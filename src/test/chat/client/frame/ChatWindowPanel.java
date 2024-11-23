@@ -30,6 +30,10 @@ public class ChatWindowPanel extends JPanel {
 	public ChatWindowPanel(String friendName) {
 	    controller = Controller.getInstance();
 	    userName = controller.username;
+	    if (userName == null || userName.isEmpty()) {
+	        JOptionPane.showMessageDialog(null, "사용자 이름이 설정되지 않았습니다. 먼저 로그인하세요.", "경고", JOptionPane.ERROR_MESSAGE);
+	        throw new IllegalStateException("사용자 이름이 설정되지 않았습니다.");
+	    }
 	
 	    panelName = friendName;
 	    setBackground(ColorSet.talkBackgroundColor);
@@ -51,16 +55,36 @@ public class ChatWindowPanel extends JPanel {
 	    sendButton = showSendButton();
 	    add(sendButton);
 	    sendButton.addActionListener(new ActionListener() {
-	    	@Override
-	    	public void actionPerformed(ActionEvent e) {
-	    		Controller controller = Controller.getInstance();
-	
-	    		String messageType = textArea.getText().matches(".*\\.(jpg|png|JPG|PNG)$") ? "file" : "text";
-	    		Message message = new Message(controller.username, textArea.getText(), LocalTime.now(), messageType, friendName);
-	        
-	    		controller.clientSocket.send(message);
-	    		textArea.setText("");
-	    	}
+	        @Override
+	        public void actionPerformed(ActionEvent e) {
+	            Controller controller = Controller.getInstance();
+
+	            // 메시지 내용 가져오기
+	            String messageContent = textArea.getText().trim();
+	            if (messageContent.isEmpty()) {
+	                JOptionPane.showMessageDialog(null, "메시지를 입력하세요.", "경고", JOptionPane.WARNING_MESSAGE);
+	                return; // 메시지가 비어있으면 전송하지 않음
+	            }
+
+	            // 메시지 유형 결정
+	            String messageType = messageContent.matches(".*\\.(jpg|png|JPG|PNG)$") ? "file" : "text";
+
+	            // 메시지 객체 생성
+	            Message message = new Message(
+	                controller.username, 
+	                messageContent, 
+	                LocalTime.now(), 
+	                messageType, 
+	                friendName
+	            );
+
+	            // 서버로 메시지 전송
+	            controller.clientSocket.sendMessage(messageContent); // 수정: sendMessage 사용
+	            textArea.setText(""); // 입력창 초기화
+
+	            // 메시지 출력 (자기 화면에 표시)
+	            ChatWindowPanel.displayComment(message); // 메시지를 화면에 즉시 반영
+	        }
 	    });
 	}
 
@@ -122,18 +146,23 @@ public class ChatWindowPanel extends JPanel {
 	}
 
 	public static void displayComment(Message message) {
+	    if (userName == null) {
+	        System.err.println("userName이 초기화되지 않았습니다.");
+	        return;
+	    }
+
 	    for (ChatWindowPanel chatName : IndexPanel.chatPanelName) {
-	    	// 오른쪽 출력
-	    	if (userName.equals(message.getSendUserName()) && chatName.panelName.equals(message.getReceiveFriendName())) {
-	    		chatName.textPrint(message.getSendTime().format(DateTimeFormatter.ofPattern("aHH:mm")) + "  <" + message.getSendUserName() + ">", AlignEnum.RIGHT);
-	    		chatName.textPrint(message.getSendComment(), AlignEnum.RIGHT);
-	    	}
-	
-	    	// 왼쪽 출력
-	    	if (chatName.panelName.equals(message.getSendUserName()) && !chatName.panelName.equals(message.getReceiveFriendName())) {
-	    		chatName.textPrint(message.getSendTime().format(DateTimeFormatter.ofPattern("aHH:mm")) + "  <" + message.getSendUserName() + ">", AlignEnum.LEFT);
-	    		chatName.textPrint(message.getSendComment(), AlignEnum.LEFT);
-	    	}
+	        // 오른쪽 출력
+	        if (userName.equals(message.getSendUserName()) && chatName.panelName.equals(message.getReceiveFriendName())) {
+	            chatName.textPrint(message.getSendTime().format(DateTimeFormatter.ofPattern("aHH:mm")) + "  <" + message.getSendUserName() + ">", AlignEnum.RIGHT);
+	            chatName.textPrint(message.getSendComment(), AlignEnum.RIGHT);
+	        }
+
+	        // 왼쪽 출력
+	        if (chatName.panelName.equals(message.getSendUserName()) && !chatName.panelName.equals(message.getReceiveFriendName())) {
+	            chatName.textPrint(message.getSendTime().format(DateTimeFormatter.ofPattern("aHH:mm")) + "  <" + message.getSendUserName() + ">", AlignEnum.LEFT);
+	            chatName.textPrint(message.getSendComment(), AlignEnum.LEFT);
+	        }
 	    }
 	}
 
@@ -147,5 +176,11 @@ public class ChatWindowPanel extends JPanel {
 	    } catch (BadLocationException e) {
 	    	e.printStackTrace();
 	    }
+	}
+	
+	public void updateChatWindow(String message) {
+	    SwingUtilities.invokeLater(() -> {
+	    	textArea.append(message + "\n"); // chatArea는 JTextArea 또는 유사한 컴포넌트
+	    });
 	}
 }

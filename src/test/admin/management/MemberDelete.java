@@ -10,7 +10,7 @@ public class MemberDelete {
     public static void handleDeleteMember(JTextField idTf, DefaultTableModel tableModel) {
         String memberId = idTf.getText();
 
-        boolean success = deleteMember(memberId);
+        boolean success = softDeleteMember(memberId);
 
         if (success) {
             for (int i = 0; i < tableModel.getRowCount(); i++) {
@@ -19,19 +19,27 @@ public class MemberDelete {
                     break;
                 }
             }
-            JOptionPane.showMessageDialog(null, "회원 삭제 성공!");
+            JOptionPane.showMessageDialog(null, "회원이 삭제 데이터 테이블로 이동되었습니다.");
         } else {
             JOptionPane.showMessageDialog(null, "회원 삭제 실패!", "오류", JOptionPane.ERROR_MESSAGE);
         }
     }
     
-    public static boolean deleteMember(String memberId) {
+    public static boolean softDeleteMember(String memberId) {
         try (Connection conn = DBConnection.getConnection()) {
-            String sql = "DELETE FROM user_info WHERE id = ?";
-            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                pstmt.setString(1, memberId);
+            // user_info 테이블에서 데이터를 deleted_users 테이블로 복사
+            String copySql = "INSERT INTO deleted_users (id, name, nickname, email, deleted_date) "
+                           + "SELECT id, name, nickname, email, CURRENT_TIMESTAMP FROM user_info WHERE id = ?";
+            try (PreparedStatement copyStmt = conn.prepareStatement(copySql)) {
+                copyStmt.setString(1, memberId);
+                copyStmt.executeUpdate();
+            }
 
-                int rowsDeleted = pstmt.executeUpdate();
+            // user_info 테이블에서 데이터 삭제
+            String deleteSql = "DELETE FROM user_info WHERE id = ?";
+            try (PreparedStatement deleteStmt = conn.prepareStatement(deleteSql)) {
+                deleteStmt.setString(1, memberId);
+                int rowsDeleted = deleteStmt.executeUpdate();
                 if (rowsDeleted > 0) {
                     System.out.println("회원 삭제 완료: " + memberId);
                     return true;

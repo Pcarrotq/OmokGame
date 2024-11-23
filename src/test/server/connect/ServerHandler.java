@@ -47,8 +47,8 @@ public class ServerHandler {
         try {
             String message;
             while ((message = client.readMessage()) != null) {
-            	System.out.println("클라이언트로부터 메시지 수신: " + message);
-            	
+                System.out.println("클라이언트로부터 메시지 수신: " + message);
+                
                 if (message.startsWith("/set_username ")) {
                     String username = message.substring(13).trim();
                     client.setUsername(username);
@@ -66,9 +66,19 @@ public class ServerHandler {
                     String chatMessage = message.substring(6).trim();
                     sendChat(client, chatMessage);
                 }
+
+                // 추가된 코드: 메시지를 다른 클라이언트들에게 브로드캐스트
+                else {
+                    for (ClientSocket recipient : clients) {
+                        if (recipient != client) { // 메시지 발신자를 제외하고 전송
+                        	System.out.println("메시지 전송: " + recipient.getUsername());
+                            recipient.sendMessage(client.getUsername() + ": " + message);
+                        }
+                    }
+                }
             }
         } catch (IOException e) {
-        	System.out.println("클라이언트 연결 종료: " + e.getMessage());
+            System.out.println("클라이언트 연결 종료: " + e.getMessage());
             e.printStackTrace();
         } finally {
             clients.remove(client);
@@ -141,8 +151,10 @@ public class ServerHandler {
     }
 
     public void stopServer() throws IOException {
+    	System.out.println("현재 연결된 클라이언트 수: " + clients.size());
         running = false;
         for (ClientSocket client : clients) {
+        	System.out.println("클라이언트: " + client.getUsername());
             try {
                 client.close();
             } catch (IOException e) {

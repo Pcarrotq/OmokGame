@@ -24,7 +24,18 @@ SELECT id, address FROM user_info;
 SELECT id, email, phone_number, name FROM user_info;
 
 ALTER TABLE user_info ADD (isBlocked NUMBER(1));
+
+ALTER TABLE user_info ADD status VARCHAR2(10) DEFAULT 'ACTIVE';
+ALTER TABLE user_info ADD blocked_date TIMESTAMP;
+ALTER TABLE user_info ADD deleted_date TIMESTAMP;
+
+ALTER TABLE user_info ADD reason VARCHAR2(255);
+
 UPDATE user_info SET isBlocked = 0 WHERE isBlocked IS NULL;
+
+SELECT id, name, nickname, email, blocked_date AS blocked_date
+FROM user_info
+WHERE status = 'BLOCKED'
 
 DROP TABLE user_info;
 

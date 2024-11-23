@@ -10,6 +10,9 @@ import java.sql.*;
 import com.google.gson.*;
 
 import test.admin.AdminScreenMain;
+import test.chat.client.frame.FriendListPanel;
+import test.chat.client.frame.IndexPanel;
+import test.chat.controller.Controller;
 import test.game.gui.GUI;
 import test.game.lobby.CharacterSelectionScreen;
 import test.game.lobby.LobbyFrame;
@@ -24,6 +27,7 @@ public class GameStartScreen extends JFrame {
 	private DBConnection dbConnection = new DBConnection();  // DB 연결 객체
 	private String userId = Login.getLoggedInUserId();  // 로그인된 사용자 ID 가져오기
 	private static GameStartScreen instance;
+	private String loggedInUserId;
 	
     public GameStartScreen() {
     	instance = this;
@@ -66,8 +70,8 @@ public class GameStartScreen extends JFrame {
                 login.setLoginSuccessCallback(new Runnable() {
                     @Override
                     public void run() {
-                        // 로그인 성공 시 메인 화면 표시
-                        showMainScreen();
+                        setLoggedInUserId(Login.getLoggedInUserId());
+                        showMainScreen(); // 로그인 성공 시 메인 화면 표시
                     }
                 });
             }
@@ -140,6 +144,18 @@ public class GameStartScreen extends JFrame {
         JButton friendsButton = new JButton("친구");
         friendsButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         friendsButton.setMaximumSize(new Dimension(100, 30));
+        friendsButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // IndexPanel을 새로운 창으로 열기
+                JFrame indexFrame = new JFrame("1 대 1 대화");
+                indexFrame.setSize(400, 600);
+                indexFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                indexFrame.add(new IndexPanel());
+                indexFrame.setLocationRelativeTo(null); // 화면 중앙에 창을 위치시킴
+                indexFrame.setVisible(true);
+            }
+        });
         mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
         mainPanel.add(friendsButton);
 
@@ -151,7 +167,7 @@ public class GameStartScreen extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 // 로그인된 사용자 ID를 사용해 EditMember 화면을 연다
-                String loggedInUserId = Login.getLoggedInUserId();
+                loggedInUserId = Login.getLoggedInUserId();
                 if (loggedInUserId != null) {
                     new EditMember(loggedInUserId);  // EditMember 화면을 연다 (로그인된 사용자 정보가 사용됨)
                 } else {
@@ -431,6 +447,11 @@ public class GameStartScreen extends JFrame {
         
         // 도시에 대한 정보가 없다면 기본적으로 첫 번째 단어 반환
         return addressParts[0];
+    }
+    
+    public void setLoggedInUserId(String userId) {
+        this.loggedInUserId = userId;
+        Controller.getInstance().username = userId; // Controller와 동기화
     }
     
     public static void showMainScreenStatic() {
