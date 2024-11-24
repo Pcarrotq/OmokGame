@@ -10,16 +10,12 @@ import java.sql.*;
 import com.google.gson.*;
 
 import test.admin.AdminScreenMain;
-import test.chat.client.frame.FriendListPanel;
-import test.chat.client.frame.IndexPanel;
-import test.chat.controller.Controller;
-import test.game.gui.GUI;
-import test.game.lobby.CharacterSelectionScreen;
 import test.game.lobby.LobbyFrame;
 import test.main.account.Login;
 import test.main.account.SignUp;
 import test.member.db.DBConnection;
 import test.member.retouch.EditMember;
+
 
 public class GameStartScreen extends JFrame {
 	private JPanel mainPanel;
@@ -70,8 +66,8 @@ public class GameStartScreen extends JFrame {
                 login.setLoginSuccessCallback(new Runnable() {
                     @Override
                     public void run() {
-                        setLoggedInUserId(Login.getLoggedInUserId());
-                        showMainScreen(); // 로그인 성공 시 메인 화면 표시
+                        // 로그인 성공 시 메인 화면 표시
+                        showMainScreen();
                     }
                 });
             }
@@ -141,6 +137,7 @@ public class GameStartScreen extends JFrame {
         mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
         mainPanel.add(startButton);
         
+        /*
         JButton friendsButton = new JButton("친구");
         friendsButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         friendsButton.setMaximumSize(new Dimension(100, 30));
@@ -158,6 +155,7 @@ public class GameStartScreen extends JFrame {
         });
         mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
         mainPanel.add(friendsButton);
+        */
 
         // 개인 설정 버튼
         JButton settingsButton = new JButton("개인 설정");
@@ -447,11 +445,6 @@ public class GameStartScreen extends JFrame {
         
         // 도시에 대한 정보가 없다면 기본적으로 첫 번째 단어 반환
         return addressParts[0];
-    }
-    
-    public void setLoggedInUserId(String userId) {
-        this.loggedInUserId = userId;
-        Controller.getInstance().username = userId; // Controller와 동기화
     }
     
     public static void showMainScreenStatic() {

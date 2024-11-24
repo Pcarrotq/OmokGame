@@ -2,7 +2,6 @@ package test.admin;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
-import javax.swing.border.LineBorder;
 import javax.swing.event.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.*;
@@ -14,8 +13,6 @@ import java.sql.*;
 import java.util.*;
 import java.util.List;
 
-import test.member.*;
-import test.admin.*;
 import test.admin.management.*;
 import test.api.ApiExplorer;
 import test.member.db.DBConnection;
@@ -133,22 +130,11 @@ public class AdminScreenMain extends JFrame {
 
         JPanel memberButtonPanel = new JPanel();
         memberButtonPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 10, 10));
-      
-        // JButton addButton = new JButton("추가"); // 회원 추가 버튼
+
         JButton openButton = new JButton("열람"); // 회원 정보 열람 버튼
         JButton editButton = new JButton("수정"); // 회원 정보 수정 버튼
         JButton blockButton = new JButton("차단");
         JButton deleteButton = new JButton("삭제"); // 회원 차단 버튼
-        
-        // addButton.addActionListener(e -> {
-        //    MemberAdd.handleAddMember(
-        //        idTf, passTf, nameTf, nicknameTf, emailLocalTf, emailDomainTf,
-        //        yearComboBox, monthComboBox, dayComboBox, phoneFrontComboBox, 
-        //        phoneMiddleTf, phoneBackTf, postalCodeTf, addressTf, detailedAddressTf, 
-        //        maleButton, tableModel
-        //    );
-        //    clearRightPanel(); // 패널 초기화 및 숨기기
-        // });
         
         openButton.addActionListener(e -> {
             int selectedRow = memberTable.getSelectedRow();
@@ -270,7 +256,6 @@ public class AdminScreenMain extends JFrame {
             }
         });
         
-        // memberButtonPanel.add(addButton);
         memberButtonPanel.add(openButton);
         memberButtonPanel.add(editButton);
         memberButtonPanel.add(blockButton);
@@ -828,24 +813,6 @@ public class AdminScreenMain extends JFrame {
         // 프로필 이미지 초기화
         profileImage = null;
         imageLabel.setIcon(null);
-    }
-    
-    private void showUserData(String title, String tableName) {
-        JFrame userFrame = new JFrame(title);
-        userFrame.setSize(800, 600);
-        userFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-
-        // 데이터 테이블
-        String[] columnNames = {"아이디", "이름", "닉네임", "이메일", "처리 날짜"};
-        DefaultTableModel tableModel = new DefaultTableModel(columnNames, 0);
-        JTable userTable = new JTable(tableModel);
-
-        // 데이터 로드
-        loadUserData(tableModel, tableName);
-
-        JScrollPane scrollPane = new JScrollPane(userTable);
-        userFrame.add(scrollPane);
-        userFrame.setVisible(true);
     }
 
     private void loadUserData(DefaultTableModel tableModel, String tableName) {
