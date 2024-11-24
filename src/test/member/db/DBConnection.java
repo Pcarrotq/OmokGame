@@ -35,6 +35,23 @@ public class DBConnection {
         return conn;
     }
     
+    public void connect() {
+        if (dbConn == null) {
+            dbConn = getConnection();
+        }
+    }
+
+    public void disconnect() {
+        if (dbConn != null) {
+            try {
+                dbConn.close();
+                dbConn = null;
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+    
     public void addMember(String id, String password, String name, String nickname, String email,
     		int birthYear, int birthMonth, int birthDay, String gender,
     		String phoneNumber, String postalCode, String address, String detailedAddress, byte[] profileImage) {
@@ -186,5 +203,40 @@ public class DBConnection {
             e.printStackTrace();
         }
         return members;
+    }
+    
+    public String findUserEmail() {
+        String userEmail = null;
+        String sql = "SELECT email FROM user_info WHERE id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, loggedInUserId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                userEmail = rs.getString("email");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return userEmail;
+    }
+
+    public ArrayList<String> friendList() {
+        String userEmail = findUserEmail();
+        connect();
+        ArrayList<String> friends = new ArrayList<>();
+        String sql = "SELECT m.uname FROM member_table m, friendList f WHERE m.uemail = f.friendEmail AND f.userEmail = ?";
+        try (PreparedStatement pstmt = dbConn.prepareStatement(sql)) {
+            pstmt.setString(1, userEmail);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                friends.add(rs.getString("uname"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            disconnect();
+        }
+        return friends;
     }
 }

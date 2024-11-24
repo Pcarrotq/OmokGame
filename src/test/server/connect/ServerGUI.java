@@ -83,37 +83,25 @@ public class ServerGUI extends JFrame {
     }
 
     private void startServer(JButton startButton, JButton stopButton) {
-        try {
-            serverHandler.startServer(8080);
-            statusLabel.setText("서버 실행 중");
-            statusLabel.setForeground(Color.BLUE); // 서버 실행 중일 때 파란색
-            startButton.setEnabled(false);
-            stopButton.setEnabled(true);
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, "서버 시작 실패: " + e.getMessage());
-        }
+        serverHandler.startServer(8080);
+		statusLabel.setText("서버 실행 중");
+		statusLabel.setForeground(Color.BLUE); // 서버 실행 중일 때 파란색
+		startButton.setEnabled(false);
+		stopButton.setEnabled(true);
     }
 
     private void stopServer(JButton startButton, JButton stopButton) {
-        try {
-            serverHandler.stopServer();
-            statusLabel.setText("서버 중지");
-            statusLabel.setForeground(Color.RED); // 서버 중지일 때 빨간색
-            startButton.setEnabled(true);
-            stopButton.setEnabled(false);
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, "서버 중지 실패: " + e.getMessage());
-        }
+        serverHandler.stopServer();
+		statusLabel.setText("서버 중지");
+		statusLabel.setForeground(Color.RED); // 서버 중지일 때 빨간색
+		startButton.setEnabled(true);
+		stopButton.setEnabled(false);
     }
 
     private void closeApp() {
-        try {
-            if (serverHandler.isRunning()) {
-                serverHandler.stopServer();
-            }
-        } catch (IOException e) {
-            // Ignore
-        }
+        if (serverHandler.isRunning()) {
+		    serverHandler.stopServer();
+		}
         dispose();
     }
 

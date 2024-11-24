@@ -24,24 +24,24 @@ public class SignUp extends JFrame implements ActionListener {
     
 	// 입력란 컴포넌트
     public JTextField emailLocalTf;
-	JTextField emailDomainTf;
-    JTextField nameTf;
+    public JTextField emailDomainTf;
+    public JTextField nameTf;
 	public JTextField idTf;
-	JTextField nicknameTf;
-	JTextField phoneMiddleTf;
-	JTextField phoneBackTf;
-	JTextField postalCodeTf;
-	JTextField detailedAddressTf;
-    JTextField addressTf;
+	public JTextField nicknameTf;
+	public JTextField phoneMiddleTf;
+	public JTextField phoneBackTf;
+	public JTextField postalCodeTf;
+	public JTextField detailedAddressTf;
+	public JTextField addressTf;
     public JPasswordField passTf;
-	JPasswordField passReTf;
+    public JPasswordField passReTf;
 
     // 선택 박스 컴포넌트 - 클릭하면 값이 밑으로 펼쳐짐
-    JComboBox<String> yearComboBox, monthComboBox, dayComboBox;
-    JComboBox<String> phoneFrontComboBox;
+    public JComboBox<String> yearComboBox, monthComboBox, dayComboBox;
+    public JComboBox<String> phoneFrontComboBox;
 
     // 선택 컴포넌트 - 원하는 것 선택
-    JRadioButton menButton, girlButton;
+    public JRadioButton menButton, girlButton;
 
     // 버튼 컴포넌트
     public JButton registerButton;
@@ -59,7 +59,7 @@ public class SignUp extends JFrame implements ActionListener {
     JLabel nameLabel, birthLabel, genderLabel, phoneNumLabel, emailLabel, emailAtLabel;
     JLabel postalCodeLabel, addressLabel, detailedAddressLabel;
     
-    BufferedImage profileImage;
+    public BufferedImage profileImage;
     ButtonGroup sexGroup;
     JProgressBar strengthBar;
 

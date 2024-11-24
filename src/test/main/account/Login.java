@@ -11,8 +11,8 @@ import test.member.db.DBConnection;
 public class Login extends JFrame implements ActionListener {
     // GUI 컴포넌트
     JPanel mainPanel;
-    JTextField idTextField;
-    JPasswordField passTextField;
+    public JTextField idTextField;
+    public JPasswordField passTextField;
     JButton loginButton, idSearchBtn, passwordSearchBtn;
     JComboBox<String> searchOptions = new JComboBox<>(new String[]{"이메일", "전화번호", "이름"});
     

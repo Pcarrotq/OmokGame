@@ -3,176 +3,207 @@ package test.server.connect;
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.util.concurrent.*;
 
 public class ServerHandler {
+    private ExecutorService executorService;
     private ServerSocket serverSocket;
-    private List<ClientSocket> clients;
+    private List<Client> clients = new Vector<>();
+    private Map<String, List<Client>> rooms = new HashMap<>(); // 방 이름과 클라이언트 매핑
     private boolean running;
-    private Map<String, List<ClientSocket>> rooms = new HashMap<>(); // 방 이름과 클라이언트 리스트 매핑
-
-    public ServerHandler() {
-        clients = new ArrayList<>();
-        rooms = new HashMap<>();
-        running = false;
-    }
-
-    public void startServer(int port) throws IOException {
-        serverSocket = new ServerSocket(port);
-        running = true;
-        System.out.println("서버 시작됨");
-
-        // 클라이언트 연결 대기
-        new Thread(() -> {
-            while (running) {
-                try {
-                    Socket clientSocket = serverSocket.accept();
-                    ClientSocket client = new ClientSocket(clientSocket);
-                    clients.add(client);
-
-                    // 클라이언트 개별 처리
-                    new Thread(() -> handleClient(client)).start();
-                } catch (IOException e) {
-                    // 서버 소켓이 닫힌 경우 오류 무시
-                    if (running) {
-                        System.err.println("서버 소켓 오류: " + e.getMessage());
-                    } else {
-                        System.out.println("서버가 정상적으로 중지되었습니다.");
-                    }
-                }
-            }
-        }).start();
-    }
-
-    private void handleClient(ClientSocket client) {
-        try {
-            String message;
-            while ((message = client.readMessage()) != null) {
-                System.out.println("클라이언트로부터 메시지 수신: " + message);
-                
-                if (message.startsWith("/set_username ")) {
-                    String username = message.substring(13).trim();
-                    client.setUsername(username);
-                    System.out.println("클라이언트 사용자 이름 설정됨: " + username);
-                } else if (message.startsWith("/create_room ")) {
-                    String roomName = message.substring(13).trim();
-                    createRoom(client, roomName);
-                } else if (message.startsWith("/remove_room ")) {
-                    String roomName = message.substring(13).trim();
-                    removeRoom(client, roomName);
-                } else if (message.startsWith("/join_room ")) {
-                    String roomName = message.substring(11).trim();
-                    joinRoom(client, roomName);
-                } else if (message.startsWith("/chat ")) {
-                    String chatMessage = message.substring(6).trim();
-                    sendChat(client, chatMessage);
-                }
-
-                // 추가된 코드: 메시지를 다른 클라이언트들에게 브로드캐스트
-                else {
-                    for (ClientSocket recipient : clients) {
-                        if (recipient != client) { // 메시지 발신자를 제외하고 전송
-                        	System.out.println("메시지 전송: " + recipient.getUsername());
-                            recipient.sendMessage(client.getUsername() + ": " + message);
-                        }
-                    }
-                }
-            }
-        } catch (IOException e) {
-            System.out.println("클라이언트 연결 종료: " + e.getMessage());
-            e.printStackTrace();
-        } finally {
-            clients.remove(client);
-            try {
-                client.close();
-                System.out.println("클라이언트 소켓 닫힘");
-            } catch (IOException e) {
-                System.err.println("클라이언트 소켓 닫기 실패: " + e.getMessage());
-            }
-        }
-    }
-
-	// 방 생성 및 브로드캐스트
-    private void createRoom(ClientSocket client, String message) {
-        synchronized (rooms) {
-            String[] parts = message.split(" ", 2);
-            if (parts.length < 2) {
-                client.sendMessage("방 이름이 필요합니다.");
-                return;
-            }
-
-            String userId = parts[0];
-            String roomName = parts[1];
-
-            if (!rooms.containsKey(roomName)) {
-                rooms.put(roomName, new ArrayList<>());
-                broadcastRoomList();
-                System.out.println(userId + " created room: " + roomName);
-            } else {
-                client.sendMessage("이미 존재하는 방입니다.");
-            }
-        }
-    }
-
-    private void joinRoom(ClientSocket client, String roomName) {
-        if (rooms.containsKey(roomName)) {
-            rooms.get(roomName).add(client);
-            System.out.println(client.getUsername() + " joined room: " + roomName);
-        } else {
-            client.sendMessage("방이 존재하지 않습니다.");
-        }
-    }
-
-    private void sendChat(ClientSocket client, String message) {
-        for (ClientSocket recipient : clients) {
-            recipient.sendMessage(client.getUsername() + ": " + message);
-        }
-    }
-
-	// 방 목록 브로드캐스트
-    private void broadcastRoomList() {
-        String roomList = String.join(",", rooms.keySet()); // 방 이름들을 ','로 연결
-        synchronized (clients) {
-            for (ClientSocket client : clients) {
-                client.sendMessage("/room " + roomList);
-            }
-        }
-    }
     
-    private void removeRoom(ClientSocket client, String roomName) {
-        synchronized (rooms) {
-            if (rooms.containsKey(roomName)) {
-                rooms.remove(roomName); // 방 삭제
-                broadcastRoomList(); // 모든 클라이언트에 업데이트된 방 목록 브로드캐스트
-                System.out.println(client.getUsername() + " removed room: " + roomName);
-            } else {
-                client.sendMessage("삭제할 방이 존재하지 않습니다.");
-            }
-        }
+    public ServerHandler() {
+        running = false;
     }
 
-    public void stopServer() throws IOException {
-    	System.out.println("현재 연결된 클라이언트 수: " + clients.size());
-        running = false;
-        for (ClientSocket client : clients) {
-        	System.out.println("클라이언트: " + client.getUsername());
-            try {
-                client.close();
-            } catch (IOException e) {
-                System.err.println("클라이언트 소켓 닫기 실패: " + e.getMessage());
-            }
+    public void startServer(int port) {
+        executorService = new ThreadPoolExecutor(
+            10, // 코어 스레드 개수
+            100, // 최대 스레드 개수
+            120L, // 유휴 스레드 유지 시간
+            TimeUnit.SECONDS,
+            new SynchronousQueue<>()
+        );
+
+        try {
+            serverSocket = new ServerSocket(port);
+            System.out.println("서버 시작됨");
+
+            Runnable acceptTask = () -> {
+                while (!serverSocket.isClosed()) {
+                    try {
+                        Socket clientSocket = serverSocket.accept();
+                        System.out.println("연결 수락: " + clientSocket.getRemoteSocketAddress());
+                        Client client = new Client(clientSocket);
+                        clients.add(client);
+                        System.out.println("현재 연결된 클라이언트 수: " + clients.size());
+                    } catch (IOException e) {
+                        if (!serverSocket.isClosed()) {
+                            stopServer();
+                        }
+                        break;
+                    }
+                }
+            };
+
+            executorService.submit(acceptTask);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        clients.clear();
-        if (serverSocket != null && !serverSocket.isClosed()) {
-            try {
-                serverSocket.close();
-            } catch (IOException e) {
-                System.err.println("서버 소켓 닫기 실패: " + e.getMessage());
-            }
-        }
-        System.out.println("서버 중지됨");
     }
     
     public boolean isRunning() {
         return running; // 서버 상태 반환
+    }
+
+    public void stopServer() {
+        try {
+            for (Client client : clients) {
+                client.close();
+            }
+            clients.clear();
+
+            if (serverSocket != null && !serverSocket.isClosed()) {
+                serverSocket.close();
+            }
+
+            if (executorService != null && !executorService.isShutdown()) {
+                executorService.shutdown();
+            }
+
+            System.out.println("서버 중지됨");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    class Client {
+        private Socket socket;
+        private String username;
+
+        public Client(Socket socket) {
+            this.socket = socket;
+            receive();
+        }
+
+        private void receive() {
+            Runnable receiveTask = () -> {
+                try {
+                    InputStream inputStream = socket.getInputStream();
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+
+                    String message;
+                    while ((message = reader.readLine()) != null) {
+                        System.out.println("메시지 수신: " + message);
+
+                        if (message.startsWith("/set_username ")) {
+                            this.username = message.substring(13).trim();
+                            System.out.println("사용자 이름 설정됨: " + username);
+                        } else if (message.startsWith("/create_room ")) {
+                            String roomName = message.substring(13).trim();
+                            createRoom(roomName);
+                        } else if (message.startsWith("/remove_room ")) {
+                            String roomName = message.substring(13).trim();
+                            removeRoom(roomName);
+                        } else if (message.startsWith("/join_room ")) {
+                            String roomName = message.substring(11).trim();
+                            joinRoom(roomName);
+                        } else if (message.startsWith("/chat ")) {
+                            String chatMessage = message.substring(6).trim();
+                            sendChat(chatMessage);
+                        } else {
+                            broadcast(username + ": " + message);
+                        }
+                    }
+                } catch (IOException e) {
+                    try {
+                        clients.remove(this);
+                        socket.close();
+                    } catch (IOException ignored) {}
+                }
+            };
+
+            executorService.submit(receiveTask);
+        }
+
+        private void send(String message) {
+            Runnable sendTask = () -> {
+                try {
+                    OutputStream outputStream = socket.getOutputStream();
+                    PrintWriter writer = new PrintWriter(new OutputStreamWriter(outputStream), true);
+                    writer.println(message);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            };
+
+            executorService.submit(sendTask);
+        }
+
+        private void broadcast(String message) {
+            for (Client client : clients) {
+                if (client != this) {
+                    client.send(message);
+                }
+            }
+        }
+
+        private void createRoom(String roomName) {
+            synchronized (rooms) {
+                if (!rooms.containsKey(roomName)) {
+                    rooms.put(roomName, new ArrayList<>());
+                    broadcastRoomList();
+                    System.out.println(username + " created room: " + roomName);
+                } else {
+                    send("이미 존재하는 방입니다.");
+                }
+            }
+        }
+
+        private void joinRoom(String roomName) {
+            synchronized (rooms) {
+                if (rooms.containsKey(roomName)) {
+                    rooms.get(roomName).add(this);
+                    System.out.println(username + " joined room: " + roomName);
+                } else {
+                    send("방이 존재하지 않습니다.");
+                }
+            }
+        }
+
+        private void removeRoom(String roomName) {
+            synchronized (rooms) {
+                if (rooms.containsKey(roomName)) {
+                    rooms.remove(roomName);
+                    broadcastRoomList();
+                    System.out.println(username + " removed room: " + roomName);
+                } else {
+                    send("삭제할 방이 존재하지 않습니다.");
+                }
+            }
+        }
+
+        private void sendChat(String message) {
+            synchronized (rooms) {
+                for (Client client : clients) {
+                    client.send(username + ": " + message);
+                }
+            }
+        }
+
+        private void broadcastRoomList() {
+            synchronized (rooms) {
+                String roomList = String.join(",", rooms.keySet());
+                for (Client client : clients) {
+                    client.send("/room " + roomList);
+                }
+            }
+        }
+
+        public void close() throws IOException {
+            if (socket != null && !socket.isClosed()) {
+                socket.close();
+            }
+        }
     }
 }
