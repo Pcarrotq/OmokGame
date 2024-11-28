@@ -165,7 +165,13 @@ public class GameStartScreen extends JFrame {
             lobbyFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             lobbyFrame.setSize(900, 600);
 
-            Lobby lobby = new Lobby();
+            String loggedInUser = Login.getLoggedInUserId();
+            if (loggedInUser == null || loggedInUser.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "로그인이 필요합니다.", "오류", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            Lobby lobby = new Lobby(loggedInUser);
             lobby.updateUserList(nicknames.toArray(new String[0])); // DB에서 가져온 닉네임 리스트 설정
             lobbyFrame.add(lobby.mainPanel);
 

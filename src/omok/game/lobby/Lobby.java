@@ -32,16 +32,38 @@ import java.util.Date;
 import java.util.List;
 
 public class Lobby extends JFrame {
+	private String nickname; // 유저 닉네임
+	
 	public JPanel mainPanel;
 	private JTable table;
     private JTextPane chatArea;
+    private JTextField chatInput;
+    private JComboBox<String> chatTypeDropdown;
+    
     private DefaultTableModel tableModel;
     private DefaultTableModel userModel;
     private DefaultListModel<String> userListModel;
     
     private DBConnection dbConnection;
+    
+    private Socket socket;
+    private PrintWriter out;
 	
-	public Lobby() {
+	public Lobby(String nickname) {
+		this.nickname = nickname;
+		
+        try {
+            // 서버와 연결
+            socket = new Socket("localhost", 8080);
+            out = new PrintWriter(socket.getOutputStream(), true);
+            startListening();
+
+            // 서버에 닉네임 전송
+            out.println("[닉네임]" + nickname);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+	    
         JFrame frame = new JFrame("Lobby");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(900, 700);
@@ -238,8 +260,8 @@ public class Lobby extends JFrame {
                 String message = spectatorGUI.getTxtInput().getText().trim();
                 if (!message.isEmpty()) {
                     DBConnection dbConnection = new DBConnection();
-                    String nickname = dbConnection.getNickname();
-                    spectatorGUI.sendChatMessage(nickname, message);
+                    String spectatorNickname = dbConnection.getNickname(); // 변수 이름 변경
+                    spectatorGUI.sendChatMessage(spectatorNickname, message);
                     spectatorGUI.getTxtInput().setText("");
                 }
             });
@@ -292,87 +314,16 @@ public class Lobby extends JFrame {
         chatScrollPane.setPreferredSize(new Dimension(0, 200)); // 스크롤 영역 높이
 
         // 채팅 입력 필드와 드롭다운
-        JComboBox<String> chatTypeDropdown = new JComboBox<>(new String[]{"일반 채팅", "스피커"});
+        chatTypeDropdown = new JComboBox<>(new String[]{"일반 채팅", "스피커"});
         chatTypeDropdown.setPreferredSize(new Dimension(100, 30));
-        JTextField chatInput = new JTextField();
+        chatInput = new JTextField();
         JButton sendButton = new JButton("전송");
 
-        // 이벤트 리스너 설정
-        ActionListener sendMessageListener = e -> {
-            String message = chatInput.getText().trim(); // 입력한 메시지 가져오기
-            if (!message.isEmpty()) {
-                // DBConnection을 통해 로그인한 사용자의 닉네임 가져오기
-                DBConnection dbConnection = new DBConnection();
-                String nickname = dbConnection.getNickname();
+        // 전송 버튼 동작 추가
+        sendButton.addActionListener(e -> sendMessage());
 
-                if (nickname == null || nickname.trim().isEmpty()) {
-                    JOptionPane.showMessageDialog(null, "로그인된 사용자 정보를 가져올 수 없습니다.", "오류", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
-                String selectedType = (String) chatTypeDropdown.getSelectedItem();
-                String prefix = ""; // 메시지에 추가할 태그
-                StyledDocument doc = chatArea.getStyledDocument();
-                SimpleAttributeSet style = new SimpleAttributeSet();
-
-                if ("스피커".equals(selectedType)) {
-                    prefix = "[스피커] " + nickname + ": "; // 스피커 태그와 닉네임 포함
-                    StyleConstants.setForeground(style, Color.RED); // 스피커 채팅은 빨간색
-                    StyleConstants.setBold(style, true); // 스피커 채팅은 굵게
-                } else {
-                    prefix = nickname + ": "; // 일반 채팅은 닉네임만 포함
-                    StyleConstants.setForeground(style, Color.BLACK); // 일반 채팅은 검은색
-                }
-
-                // StyledDocument에 메시지 출력
-                try {
-                    doc.insertString(doc.getLength(), prefix + message + "\n", style);
-                } catch (BadLocationException ex) {
-                    ex.printStackTrace();
-                }
-
-                chatInput.setText(""); // 입력 필드 초기화
-            }
-        };
-
-        // 전송 버튼에 이벤트 리스너 추가
-        sendButton.addActionListener(e -> {
-            String message = chatInput.getText().trim(); // 입력한 메시지 가져오기
-            if (!message.isEmpty()) {
-                DBConnection dbConnection = new DBConnection();
-                String nickname = dbConnection.getNickname();
-
-                if (nickname == null || nickname.trim().isEmpty()) {
-                    JOptionPane.showMessageDialog(null, "로그인된 사용자 정보를 가져올 수 없습니다.", "오류", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-
-                String selectedType = (String) chatTypeDropdown.getSelectedItem();
-                String prefix = ""; // 메시지에 추가할 태그
-                StyledDocument doc = chatArea.getStyledDocument();
-                SimpleAttributeSet style = new SimpleAttributeSet();
-
-                if ("스피커".equals(selectedType)) {
-                    prefix = "[스피커] " + nickname + ": ";
-                    StyleConstants.setForeground(style, Color.RED); // 스피커 채팅은 빨간색
-                    StyleConstants.setBold(style, true);
-                } else {
-                    prefix = nickname + ": ";
-                    StyleConstants.setForeground(style, Color.BLACK);
-                }
-
-                try {
-                    doc.insertString(doc.getLength(), prefix + message + "\n", style);
-                } catch (BadLocationException ex) {
-                    ex.printStackTrace();
-                }
-
-                chatInput.setText(""); // 입력 필드 초기화
-            }
-        });
-
-        // 엔터 키를 눌렀을 때 이벤트 추가
-        chatInput.addActionListener(sendMessageListener);
+        // 엔터키로 메시지 전송
+        chatInput.addActionListener(e -> sendMessage());
 
         JPanel chatInputPanel = new JPanel(new BorderLayout());
         JPanel chatInputWithDropdown = new JPanel(new BorderLayout());
@@ -446,6 +397,79 @@ public class Lobby extends JFrame {
         // 메인 패널 구성
         mainPanel.add(topPanel, BorderLayout.CENTER);
         mainPanel.add(bottomPanel, BorderLayout.SOUTH);
+	}
+	
+	private void sendMessage() {
+	    String message = chatInput.getText().trim();
+	    if (message.isEmpty()) {
+	        return;
+	    }
+
+	    String nickname = Login.getLoggedInUserId(); // 로그인된 사용자 ID 가져오기
+	    if (nickname == null || nickname.isEmpty()) {
+	        JOptionPane.showMessageDialog(null, "로그인 후 사용 가능합니다.", "오류", JOptionPane.ERROR_MESSAGE);
+	        return;
+	    }
+
+	    String chatType = (String) chatTypeDropdown.getSelectedItem();
+	    String formattedMessage;
+
+	    // 스피커 채팅일 경우 "[스피커]" 추가
+	    if ("스피커".equals(chatType)) {
+	        formattedMessage = "[스피커] " + nickname + ": " + message;
+	    } else {
+	        formattedMessage = nickname + ": " + message;
+	    }
+
+	    out.println(formattedMessage); // 서버로 메시지 전송
+	    chatInput.setText(""); // 입력 필드 초기화
+	}
+	
+	private void startListening() {
+	    new Thread(() -> {
+	        try {
+	            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+	            String receivedMessage;
+
+	            while ((receivedMessage = in.readLine()) != null) {
+	                final String message = receivedMessage;
+
+	                SwingUtilities.invokeLater(() -> {
+	                    StyledDocument doc = chatArea.getStyledDocument();
+	                    SimpleAttributeSet style = new SimpleAttributeSet();
+
+	                    // "스피커" 메시지는 빨간색으로 출력
+	                    if (message.contains("[스피커]")) {
+	                        StyleConstants.setForeground(style, Color.RED);
+	                        StyleConstants.setBold(style, true);
+	                    } else {
+	                        // 일반 메시지는 검은색으로 출력
+	                        StyleConstants.setForeground(style, Color.BLACK);
+	                    }
+
+	                    try {
+	                        doc.insertString(doc.getLength(), message + "\n", style);
+	                    } catch (BadLocationException e) {
+	                        e.printStackTrace();
+	                    }
+	                });
+	            }
+	        } catch (IOException e) {
+	            System.out.println("서버 연결 종료됨.");
+	            e.printStackTrace();
+	        }
+	    }).start();
+	}
+	
+	private void sendMessageToServer(String message) {
+	    try {
+	        Socket socket = new Socket("localhost", 8080); // 서버와 연결
+	        PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+	        out.println(message); // 서버로 메시지 전송
+	        socket.close();
+	    } catch (IOException e) {
+	        e.printStackTrace();
+	    }
 	}
 	
     // 방 삭제 메서드
