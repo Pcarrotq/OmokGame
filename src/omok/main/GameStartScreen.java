@@ -1,21 +1,23 @@
 package omok.main;
 
 import javax.swing.*;
-
-import omok.additional.CharacterSelectionScreen;
-import omok.game.GUI;
-import omok.member.*;
-import omok.admin.AdminDashboard;
-import omok.main.GameStartScreen;
-import omok.chat.client.frame.IndexPanel;
-
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.net.*;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.google.gson.*;
+
+import omok.admin.AdminScreenMain;
+import omok.game.board.frame.GUI;
+import omok.game.lobby.Lobby;
+import omok.main.function.login.Login;
+import omok.main.function.signUp.SignUp;
+import omok.member.EditMember;
+import omok.member.db.DBConnection;
 
 public class GameStartScreen extends JFrame {
 	private JPanel mainPanel;
@@ -23,6 +25,7 @@ public class GameStartScreen extends JFrame {
 	private DBConnection dbConnection = new DBConnection();  // DB 연결 객체
 	private String userId = Login.getLoggedInUserId();  // 로그인된 사용자 ID 가져오기
 	private static GameStartScreen instance;
+	private String loggedInUserId;
 	
     public GameStartScreen() {
     	instance = this;
@@ -65,8 +68,19 @@ public class GameStartScreen extends JFrame {
                 login.setLoginSuccessCallback(new Runnable() {
                     @Override
                     public void run() {
-                        // 로그인 성공 시 메인 화면 표시
-                        showMainScreen();
+                        String userId = Login.getLoggedInUserId();
+                        if (userId != null) {
+                            String status = getUserStatus(userId);
+                            if ("BLOCKED".equals(status)) {
+                                JOptionPane.showMessageDialog(null, "차단된 유저입니다.", "로그인 실패", JOptionPane.ERROR_MESSAGE);
+                            } else if ("DELETED".equals(status)) {
+                                JOptionPane.showMessageDialog(null, "삭제된 유저입니다.", "로그인 실패", JOptionPane.ERROR_MESSAGE);
+                            } else {
+                            	showAdminScreen(); // 정상 상태일 경우 메인 화면 표시
+                            }
+                        } else {
+                            JOptionPane.showMessageDialog(null, "로그인 실패", "오류", JOptionPane.ERROR_MESSAGE);
+                        }
                     }
                 });
             }
@@ -112,7 +126,7 @@ public class GameStartScreen extends JFrame {
     }
     
     // 메인 화면 구성
-    public void showMainScreen() {
+    public void showAdminScreen() {
         getContentPane().removeAll(); // 기존 화면 제거
         mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS)); // Y축으로 구성 요소 배치
@@ -128,44 +142,41 @@ public class GameStartScreen extends JFrame {
         JButton startButton = new JButton("Start");
         startButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         startButton.setMaximumSize(new Dimension(100, 30));
-        startButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // 캐릭터 선택 창 열기
-                CharacterSelectionScreen characterSelection = new CharacterSelectionScreen(selectedCharacter -> {
-                    // 선택된 캐릭터 정보를 받아 게임 GUI 설정
-                    GUI gameGui = new GUI("오목 게임");
-                    gameGui.setPlayer1Profile(selectedCharacter); // 왼쪽 프로필에 설정
+        startButton.addActionListener(e -> {
+            // DB에서 모든 유저의 닉네임 가져오기
+            List<String> nicknames = new ArrayList<>();
+            String sql = "SELECT nickname FROM user_info";
 
-                    // 기존 화면 제거하고 새로운 게임 화면 추가
-                    getContentPane().removeAll();
-                    getContentPane().add(gameGui);
-                    revalidate();
-                    repaint();
-                });
-                characterSelection.setVisible(true);
+            try (Connection conn = DBConnection.getConnection();
+                 PreparedStatement pstmt = conn.prepareStatement(sql);
+                 ResultSet rs = pstmt.executeQuery()) {
+
+                while (rs.next()) {
+                    nicknames.add(rs.getString("nickname"));
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this, "DB에서 유저 목록을 가져오는 중 오류가 발생했습니다.", "오류", JOptionPane.ERROR_MESSAGE);
+                return; // 오류 발생 시 실행 중단
             }
+
+            // 로비 화면 생성 및 초기화
+            JFrame lobbyFrame = new JFrame("Lobby");
+            lobbyFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            lobbyFrame.setSize(900, 600);
+
+            Lobby lobby = new Lobby();
+            lobby.updateUserList(nicknames.toArray(new String[0])); // DB에서 가져온 닉네임 리스트 설정
+            lobbyFrame.add(lobby.mainPanel);
+
+            // 로비 화면 표시
+            lobbyFrame.setVisible(true);
+
+            // 현재 창 닫기
+            dispose();
         });
         mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
         mainPanel.add(startButton);
-        
-        JButton friendsButton = new JButton("친구");
-        friendsButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        friendsButton.setMaximumSize(new Dimension(100, 30));
-        friendsButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                // IndexPanel을 새로운 창으로 열기
-                JFrame indexFrame = new JFrame("1 대 1 대화");
-                indexFrame.setSize(400, 600);
-                indexFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-                indexFrame.add(new IndexPanel());
-                indexFrame.setLocationRelativeTo(null); // 화면 중앙에 창을 위치시킴
-                indexFrame.setVisible(true);
-            }
-        });
-        mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
-        mainPanel.add(friendsButton);
 
         // 개인 설정 버튼
         JButton settingsButton = new JButton("개인 설정");
@@ -175,7 +186,7 @@ public class GameStartScreen extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 // 로그인된 사용자 ID를 사용해 EditMember 화면을 연다
-                String loggedInUserId = Login.getLoggedInUserId();
+                loggedInUserId = Login.getLoggedInUserId();
                 if (loggedInUserId != null) {
                     new EditMember(loggedInUserId);  // EditMember 화면을 연다 (로그인된 사용자 정보가 사용됨)
                 } else {
@@ -185,7 +196,7 @@ public class GameStartScreen extends JFrame {
         });
         mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
         mainPanel.add(settingsButton);
-        
+
         // 관리자 설정 버튼
         JButton adminSettingsButton = new JButton("관리자 설정");
         adminSettingsButton.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -194,7 +205,7 @@ public class GameStartScreen extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 // 관리자 대시보드 창 열기
-                new AdminDashboard();
+                new AdminScreenMain();
             }
         });
         mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
@@ -363,6 +374,24 @@ public class GameStartScreen extends JFrame {
         }
     }
     
+    private String getUserStatus(String userId) {
+        String status = null;
+        try (Connection conn = dbConnection.getConnection()) {
+            String query = "SELECT status FROM user_info WHERE id = ?";
+            PreparedStatement pstmt = conn.prepareStatement(query);
+            pstmt.setString(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                status = rs.getString("status");
+            }
+            rs.close();
+            pstmt.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return status;
+    }
+    
     private void fetchWeatherData() {
         new Thread(() -> {
             try {
@@ -459,7 +488,7 @@ public class GameStartScreen extends JFrame {
     
     public static void showMainScreenStatic() {
         if (instance != null) {
-            instance.showMainScreen();
+            instance.showAdminScreen();
         }
     }
     

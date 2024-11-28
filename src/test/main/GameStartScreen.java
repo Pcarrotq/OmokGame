@@ -16,7 +16,6 @@ import test.main.account.SignUp;
 import test.member.db.DBConnection;
 import test.member.retouch.EditMember;
 
-
 public class GameStartScreen extends JFrame {
 	private JPanel mainPanel;
 	private JTextArea weatherTextArea;
@@ -66,8 +65,19 @@ public class GameStartScreen extends JFrame {
                 login.setLoginSuccessCallback(new Runnable() {
                     @Override
                     public void run() {
-                        // 로그인 성공 시 메인 화면 표시
-                        showMainScreen();
+                        String userId = Login.getLoggedInUserId();
+                        if (userId != null) {
+                            String status = getUserStatus(userId);
+                            if ("BLOCKED".equals(status)) {
+                                JOptionPane.showMessageDialog(null, "차단된 유저입니다.", "로그인 실패", JOptionPane.ERROR_MESSAGE);
+                            } else if ("DELETED".equals(status)) {
+                                JOptionPane.showMessageDialog(null, "삭제된 유저입니다.", "로그인 실패", JOptionPane.ERROR_MESSAGE);
+                            } else {
+                            	showAdminScreen(); // 정상 상태일 경우 메인 화면 표시
+                            }
+                        } else {
+                            JOptionPane.showMessageDialog(null, "로그인 실패", "오류", JOptionPane.ERROR_MESSAGE);
+                        }
                     }
                 });
             }
@@ -113,7 +123,7 @@ public class GameStartScreen extends JFrame {
     }
     
     // 메인 화면 구성
-    public void showMainScreen() {
+    public void showAdminScreen() {
         getContentPane().removeAll(); // 기존 화면 제거
         mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS)); // Y축으로 구성 요소 배치
@@ -161,8 +171,7 @@ public class GameStartScreen extends JFrame {
         });
         mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
         mainPanel.add(settingsButton);
-        
-        /*
+
         // 관리자 설정 버튼
         JButton adminSettingsButton = new JButton("관리자 설정");
         adminSettingsButton.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -176,7 +185,6 @@ public class GameStartScreen extends JFrame {
         });
         mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
         mainPanel.add(adminSettingsButton);
-        */
 
         // 로그아웃 버튼
         JButton logoutButton = new JButton("로그아웃");
@@ -341,6 +349,24 @@ public class GameStartScreen extends JFrame {
         }
     }
     
+    private String getUserStatus(String userId) {
+        String status = null;
+        try (Connection conn = dbConnection.getConnection()) {
+            String query = "SELECT status FROM user_info WHERE id = ?";
+            PreparedStatement pstmt = conn.prepareStatement(query);
+            pstmt.setString(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                status = rs.getString("status");
+            }
+            rs.close();
+            pstmt.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return status;
+    }
+    
     private void fetchWeatherData() {
         new Thread(() -> {
             try {
@@ -437,7 +463,7 @@ public class GameStartScreen extends JFrame {
     
     public static void showMainScreenStatic() {
         if (instance != null) {
-            instance.showMainScreen();
+            instance.showAdminScreen();
         }
     }
     

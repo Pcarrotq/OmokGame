@@ -2,7 +2,7 @@ package omok.additional;
 
 import javax.swing.*;
 
-import omok.game.GUI;
+import omok.game.board.frame.GUI;
 
 import java.awt.*;
 import java.awt.event.*;

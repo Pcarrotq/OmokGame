@@ -647,7 +647,8 @@ public class AdminScreenMain extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 // 프로그램 종료
-                System.exit(0);
+                // System.exit(0);
+            	dispose();
             }
         });
         buttonPanel.add(saveButton);

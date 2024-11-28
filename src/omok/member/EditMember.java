@@ -1,6 +1,9 @@
 package omok.member;
 
 import javax.swing.*;
+
+import omok.member.db.DBConnection;
+
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;

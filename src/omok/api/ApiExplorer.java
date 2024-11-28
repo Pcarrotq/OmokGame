@@ -10,7 +10,7 @@ import java.net.*;
 import javax.xml.parsers.*;
 import org.w3c.dom.*;
 
-import omok.member.SignUp;
+import omok.main.function.signUp.SignUp;
 
 public class ApiExplorer extends JFrame {
 

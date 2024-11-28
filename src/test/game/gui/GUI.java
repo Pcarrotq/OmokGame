@@ -17,22 +17,18 @@ public class GUI extends JPanel {
     private Container c;
     private Map map;
     private DrawBoard d;
-    
     private JTextPane txtDisplay;
     private JPanel pSouth;
     private JTextField txtInput;
     private JButton btnSend;
-    private JButton btnEmoji;
-    
     private JButton btnExit;
-    
+    private JButton btnEmoji;
     private JLabel player1Profile;
     private JLabel player1Label;
     private JLabel player2Profile;
     private JLabel player2Label;
-    private EmojiMap emojiMap;
-    
     private JLabel turnDisplay;
+    private EmojiMap emojiMap;
 
     public GUI(String title) {
         setLayout(new BorderLayout());
@@ -53,19 +49,8 @@ public class GUI extends JPanel {
         btnExit = new JButton("나가기");
         btnExit.addActionListener(e -> {
             JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(GUI.this);
-
-            // 방 삭제 요청
-            if (parentFrame != null) {
-                String roomName = parentFrame.getTitle().replace("방 이름: ", "").trim();
-                sendRemoveRoomRequest(roomName); // 방 삭제 요청 메서드 호출
-            }
-
-            // 기존 화면 닫기
             if (parentFrame instanceof GameStartScreen) {
-                parentFrame.dispose();
-                new GameStartScreen();
-            } else if (parentFrame != null) {
-                parentFrame.dispose();
+                ((GameStartScreen) parentFrame).showAdminScreen(); // showMainScreen으로 돌아가기
             }
         });
         JPanel exitPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
@@ -271,16 +256,5 @@ public class GUI extends JPanel {
 
     public void showPopUp(String message) {
         JOptionPane.showMessageDialog(this, message, "", JOptionPane.INFORMATION_MESSAGE);
-    }
-    
-    private void sendRemoveRoomRequest(String roomName) {
-        try {
-            Socket socket = new Socket("127.0.0.1", 8080); // 서버 주소 및 포트
-            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-            out.println("/remove_room " + roomName); // 서버에 방 삭제 요청
-            socket.close();
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
     }
 }

@@ -49,12 +49,12 @@ public class ServerGUI extends JFrame {
 
         Dimension buttonSize = new Dimension(150, 40);
 
-        JButton startButton = new JButton("서버 시작 버튼");
+        JButton startButton = new JButton("서버 시작");
         startButton.setPreferredSize(buttonSize);
         startButton.setMaximumSize(buttonSize);
         startButton.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JButton stopButton = new JButton("서버 중지 버튼");
+        JButton stopButton = new JButton("서버 중지");
         stopButton.setPreferredSize(buttonSize);
         stopButton.setMaximumSize(buttonSize);
         stopButton.setEnabled(false);

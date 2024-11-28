@@ -137,22 +137,26 @@ public class Login extends JFrame implements ActionListener {
 
             lp = new DBConnection();
             try (Connection conn = lp.getConnection();
-                 PreparedStatement pstmt = conn.prepareStatement("SELECT password FROM user_info WHERE id = ?")) {
-                 
+                 PreparedStatement pstmt = conn.prepareStatement(
+                     "SELECT password, status FROM user_info WHERE id = ?")) {
+
                 pstmt.setString(1, id);
                 ResultSet rset = pstmt.executeQuery();
 
                 if (rset.next()) {
                     String dbPassword = rset.getString("password");
-                    if (dbPassword.equals(pass)) {
+                    String status = rset.getString("status");
+
+                    if ("BLOCKED".equals(status)) {
+                        JOptionPane.showMessageDialog(this, "차단된 유저입니다.", "로그인 실패", JOptionPane.ERROR_MESSAGE);
+                    } else if ("DELETED".equals(status)) {
+                        JOptionPane.showMessageDialog(this, "삭제된 유저입니다.", "로그인 실패", JOptionPane.ERROR_MESSAGE);
+                    } else if (dbPassword.equals(pass)) {
                         JOptionPane.showMessageDialog(this, "로그인 성공", "로그인 성공", JOptionPane.INFORMATION_MESSAGE);
 
                         // 로그인 성공 시 로그인한 사용자 ID를 저장
                         loggedInUserId = id;
-                        DBConnection.loggedInUserId = id;  // DBConnection에도 설정
-                        
-                        // 로그인된 사용자 ID 로그로 확인
-                        System.out.println("로그인된 사용자 ID: " + loggedInUserId);
+                        DBConnection.loggedInUserId = id;
 
                         dispose();
 
@@ -160,13 +164,14 @@ public class Login extends JFrame implements ActionListener {
                             loginSuccessCallback.run(); // GameStartScreen으로 돌아가기
                         }
                     } else {
-                        JOptionPane.showMessageDialog(this, "로그인 실패", "로그인 실패", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(this, "비밀번호가 틀렸습니다.", "로그인 실패", JOptionPane.ERROR_MESSAGE);
                     }
                 } else {
-                    JOptionPane.showMessageDialog(this, "로그인 실패", "로그인 실패", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "존재하지 않는 사용자입니다.", "로그인 실패", JOptionPane.ERROR_MESSAGE);
                 }
             } catch (SQLException ex) {
-                JOptionPane.showMessageDialog(this, "로그인 실패", "로그인 실패", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "로그인 처리 중 오류가 발생했습니다.", "로그인 실패", JOptionPane.ERROR_MESSAGE);
+                ex.printStackTrace();
             }
         }
     }
@@ -260,7 +265,7 @@ public class Login extends JFrame implements ActionListener {
         }
     }
     
- // 아이디 찾기 UI 패널 구성
+	// 아이디 찾기 UI 패널 구성
     private void createIdSearchUI() {
         JFrame frame = new JFrame("아이디 찾기");
         frame.setSize(400, 300);
