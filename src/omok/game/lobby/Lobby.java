@@ -32,7 +32,7 @@ import java.util.Date;
 import java.util.List;
 
 public class Lobby extends JFrame {
-	private String nickname; // 유저 닉네임
+	private String nickname = DBConnection.getNickname(); // 로그인한 유저의 닉네임을 DB에서 가져옴
 	
 	public JPanel mainPanel;
 	private JTable table;
@@ -48,9 +48,18 @@ public class Lobby extends JFrame {
     
     private Socket socket;
     private PrintWriter out;
+    String serverAddress = "127.0.0.1"; // 서버 IP 주소
+    int serverPort = 8080;            // 서버 포트 번호
+    
+    private String initializeNickname(String nickname) {
+        if (nickname == null || nickname.trim().isEmpty()) {
+            return "Unknown"; // 기본값 설정
+        }
+        return nickname;
+    }
 	
 	public Lobby(String nickname) {
-		this.nickname = nickname;
+		this.nickname = initializeNickname(nickname);
 		
         try {
             // 서버와 연결
@@ -108,8 +117,11 @@ public class Lobby extends JFrame {
                 return;
             }
 
-            String roomName = JOptionPane.showInputDialog(frame, "방 이름을 입력하세요:", "새 게임 방 생성", JOptionPane.PLAIN_MESSAGE);
-
+            String roomName = JOptionPane.showInputDialog("방 이름을 입력하세요:");
+            if (roomName != null && !roomName.trim().isEmpty()) {
+                out.println("[CREATE_ROOM] " + roomName); // 서버에 방 생성 요청 전송
+            }
+            
             if (roomName != null && !roomName.trim().isEmpty()) {
                 int newRoomNumber = table.getRowCount() + 1;
                 tableModel.addRow(new Object[]{newRoomNumber, roomName, loggedInUser, "1/2", "대기 중"});
@@ -119,7 +131,7 @@ public class Lobby extends JFrame {
 
                 // GUI 생성 로직에 로그 추가
                 System.out.println("게임 방 생성됨: " + roomName);
-                GUI gameGui = new GUI(roomName); // GUI 객체 생성
+                GUI gameGui = new GUI(roomName, serverAddress, serverPort); // GUI 객체 생성
                 gameFrame.add(gameGui);
                 gameFrame.setSize(1500, 1000);
 
@@ -166,7 +178,7 @@ public class Lobby extends JFrame {
             gameFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
             // GUI 추가
-            gameFrame.add(new GUI(roomName)); // GUI는 방 이름을 인자로 받아 생성
+            gameFrame.add(new GUI(roomName, serverAddress, serverPort)); // GUI는 방 이름을 인자로 받아 생성
             gameFrame.setSize(1500, 1000);
 
             // 창 닫힐 때 처리 (필요 시 방 삭제 또는 상태 변경 로직 추가 가능)
@@ -217,7 +229,7 @@ public class Lobby extends JFrame {
                 gameFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
                 // GUI 추가
-                gameFrame.add(new GUI(roomName)); // 방 이름 전달
+                gameFrame.add(new GUI(roomName, serverAddress, serverPort)); // 방 이름 전달
                 gameFrame.setSize(1500, 1000);
 
                 // 새로운 게임 창 표시
@@ -246,7 +258,7 @@ public class Lobby extends JFrame {
             JFrame spectatorFrame = new JFrame("관전 중: " + roomName);
             spectatorFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
-            GUI spectatorGUI = new GUI(roomName);
+            GUI spectatorGUI = new GUI(roomName, serverAddress, serverPort);
             spectatorGUI.setSpectatorMode(true); // 관전 모드 활성화
 
             spectatorFrame.add(spectatorGUI);
@@ -405,16 +417,15 @@ public class Lobby extends JFrame {
 	        return;
 	    }
 
-	    String nickname = Login.getLoggedInUserId(); // 로그인된 사용자 ID 가져오기
+	    String nickname = Login.getLoggedInUserId();
 	    if (nickname == null || nickname.isEmpty()) {
-	        JOptionPane.showMessageDialog(null, "로그인 후 사용 가능합니다.", "오류", JOptionPane.ERROR_MESSAGE);
+	        JOptionPane.showMessageDialog(this, "로그인 후 사용 가능합니다.", "오류", JOptionPane.ERROR_MESSAGE);
 	        return;
 	    }
 
 	    String chatType = (String) chatTypeDropdown.getSelectedItem();
 	    String formattedMessage;
 
-	    // 스피커 채팅일 경우 "[스피커]" 추가
 	    if ("스피커".equals(chatType)) {
 	        formattedMessage = "[스피커] " + nickname + ": " + message;
 	    } else {
@@ -427,38 +438,51 @@ public class Lobby extends JFrame {
 	
 	private void startListening() {
 	    new Thread(() -> {
-	        try {
-	            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+	        try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 	            String receivedMessage;
 
 	            while ((receivedMessage = in.readLine()) != null) {
-	                final String message = receivedMessage;
+	                final String message = receivedMessage.trim();
 
 	                SwingUtilities.invokeLater(() -> {
-	                    StyledDocument doc = chatArea.getStyledDocument();
-	                    SimpleAttributeSet style = new SimpleAttributeSet();
-
-	                    // "스피커" 메시지는 빨간색으로 출력
-	                    if (message.contains("[스피커]")) {
-	                        StyleConstants.setForeground(style, Color.RED);
-	                        StyleConstants.setBold(style, true);
+	                    if (message.startsWith("[ROOM_LIST]")) {
+	                        // [ROOM_LIST] 이후 데이터 추출
+	                        String roomData = message.length() > 12 ? message.substring(12).trim() : "";
+	                        updateRoomList(roomData); // 방 리스트 갱신
 	                    } else {
-	                        // 일반 메시지는 검은색으로 출력
-	                        StyleConstants.setForeground(style, Color.BLACK);
-	                    }
-
-	                    try {
-	                        doc.insertString(doc.getLength(), message + "\n", style);
-	                    } catch (BadLocationException e) {
-	                        e.printStackTrace();
+	                        displayMessage(message); // 일반 메시지 출력
 	                    }
 	                });
 	            }
 	        } catch (IOException e) {
-	            System.out.println("서버 연결 종료됨.");
 	            e.printStackTrace();
 	        }
 	    }).start();
+	}
+	
+	private void displayMessage(String message) {
+	    try {
+	        // "null: " 또는 "[닉네임]" 제거
+	        message = message.replace("null: ", "").replaceAll("\\[닉네임\\].*?user[0-9]+", "").trim();
+	        
+	        // 메시지가 비어 있지 않은 경우만 처리
+	        if (message.isEmpty()) return;
+
+	        StyledDocument doc = chatArea.getStyledDocument();
+	        SimpleAttributeSet style = new SimpleAttributeSet();
+
+	        if (message.contains("[스피커]")) {
+	            StyleConstants.setForeground(style, Color.RED);
+	            StyleConstants.setBold(style, true);
+	        } else {
+	            StyleConstants.setForeground(style, Color.BLACK);
+	        }
+
+	        doc.insertString(doc.getLength(), message + "\n", style);
+	        chatArea.setCaretPosition(doc.getLength()); // 스크롤을 맨 아래로 이동
+	    } catch (BadLocationException e) {
+	        e.printStackTrace();
+	    }
 	}
 	
 	private void sendMessageToServer(String message) {
@@ -473,13 +497,22 @@ public class Lobby extends JFrame {
 	}
 	
     // 방 삭제 메서드
-    public void removeRoomByTitle(String roomTitle) {
-        for (int i = 0; i < tableModel.getRowCount(); i++) {
-            if (tableModel.getValueAt(i, 1).equals(roomTitle)) {
-                tableModel.removeRow(i);
-                break;
-            }
-        }
+	public void removeRoomByTitle(String roomTitle) {
+	    for (int i = 0; i < tableModel.getRowCount(); i++) {
+	        if (tableModel.getValueAt(i, 1).equals(roomTitle)) {
+	            tableModel.removeRow(i);
+	            break;
+	        }
+	    }
+	}
+    
+    private void createRoom(String roomName) {
+        String roomInfo = "0|" + roomName + "|" + nickname + "|1/2|WAITING";
+        out.println("[CREATE_ROOM] " + roomInfo); // 서버로 방 생성 메시지 전송
+    }
+
+    private void removeRoom(String roomName) {
+        out.println("[REMOVE_ROOM] " + roomName); // 서버로 방 삭제 메시지 전송
     }
     
     // 검색 기능 메서드 추가
@@ -587,23 +620,19 @@ public class Lobby extends JFrame {
         // 닉네임 또는 메시지 패턴으로 로컬 메시지 여부 확인
         return message.contains(DBConnection.getNickname());
     }
-
-    private void displayMessage(String message) {
+    
+    private void updateRoomList(String roomData) {
         SwingUtilities.invokeLater(() -> {
-            StyledDocument doc = chatArea.getStyledDocument();
-            SimpleAttributeSet style = new SimpleAttributeSet();
+            tableModel.setRowCount(0); // 기존 데이터 초기화
 
-            if (message.contains("[스피커]")) {
-                StyleConstants.setForeground(style, Color.RED);
-                StyleConstants.setBold(style, true);
-            } else {
-                StyleConstants.setForeground(style, Color.BLACK);
-            }
-
-            try {
-                doc.insertString(doc.getLength(), message + "\n", style);
-            } catch (BadLocationException e) {
-                e.printStackTrace();
+            if (!roomData.isEmpty()) {
+                String[] rooms = roomData.split("\n"); // 각 방 정보 분리
+                for (String room : rooms) {
+                    String[] details = room.split("\\|"); // 방 번호, 이름, 방장 등 분리
+                    if (details.length == 5) { // 유효한 데이터만 추가
+                        tableModel.addRow(details);
+                    }
+                }
             }
         });
     }

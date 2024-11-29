@@ -60,7 +60,7 @@ public class CharacterSelectionScreen extends JFrame {
 
             // 게임 GUI를 열고 캐릭터 정보를 설정
             SwingUtilities.invokeLater(() -> {
-                GUI gameGui = new GUI("오목 게임");
+                GUI gameGui = new GUI("오목방", "127.0.0.1", 8080); // 나중에 수정하기
                 gameGui.setPlayer1Profile(selectedCharacter);
                 gameGui.setVisible(true);
             });
@@ -103,7 +103,7 @@ public class CharacterSelectionScreen extends JFrame {
     private void openCharacterSelection() {
         new CharacterSelectionScreen(selectedCharacter -> {
             SwingUtilities.invokeLater(() -> {
-                GUI gameGui = new GUI("오목 게임");
+                GUI gameGui = new GUI("오목방", "127.0.0.1", 8080); // 나중에 수정하기
                 gameGui.setPlayer1Profile(selectedCharacter);
                 gameGui.setVisible(true);
                 dispose(); // GameLobbyScreen 닫기

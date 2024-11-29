@@ -165,13 +165,20 @@ public class GameStartScreen extends JFrame {
             lobbyFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             lobbyFrame.setSize(900, 600);
 
+            // 로그인된 유저의 닉네임 가져오기
             String loggedInUser = Login.getLoggedInUserId();
             if (loggedInUser == null || loggedInUser.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "로그인이 필요합니다.", "오류", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            
-            Lobby lobby = new Lobby(loggedInUser);
+
+            String nickname = DBConnection.getNickname(); // 닉네임 가져오기
+            if (nickname == null || nickname.trim().isEmpty()) {
+                nickname = "Unknown"; // 닉네임이 없을 경우 기본값 설정
+            }
+
+            // Lobby 생성
+            Lobby lobby = new Lobby(nickname);
             lobby.updateUserList(nicknames.toArray(new String[0])); // DB에서 가져온 닉네임 리스트 설정
             lobbyFrame.add(lobby.mainPanel);
 

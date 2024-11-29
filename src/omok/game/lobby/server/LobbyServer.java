@@ -10,6 +10,7 @@ public class LobbyServer {
 	ServerSocket serverSocket;
 	Socket socket;
 	List<ServerSocketThread> list;		// ServerSocketThread 객체 저장
+	private List<String> roomList = new ArrayList<>();
 	
 	public LobbyServer() {
 	    list = new ArrayList<ServerSocketThread>(); // 수정된 코드
@@ -48,18 +49,23 @@ public class LobbyServer {
 	}
 	// 모든 클라이언트에게 채팅 내용 전달
 	public synchronized void broadCasting(String message) {
+	    // "null: " 또는 불필요한 텍스트 제거
+	    message = message.replace("null: ", "").trim();
+	    
+	    // 메시지가 비어 있지 않은 경우만 브로드캐스트
+	    if (message.isEmpty()) return;
+
 	    System.out.println("브로드캐스팅 시작: " + message);
 	    List<ServerSocketThread> invalidThreads = new ArrayList<>();
 
 	    for (ServerSocketThread thread : list) {
-	        if (thread.isAlive() && thread.out != null) {
-	            try {
+	        try {
+	            if (thread.isAlive() && thread.out != null) {
 	                thread.sendMessage(message);
-	            } catch (Exception e) {
-	                System.out.println("메시지 전송 실패: " + e.getMessage());
-	                invalidThreads.add(thread);
+	            } else {
+	                invalidThreads.add(thread); // 유효하지 않은 클라이언트
 	            }
-	        } else {
+	        } catch (Exception e) {
 	            invalidThreads.add(thread);
 	        }
 	    }
@@ -68,5 +74,21 @@ public class LobbyServer {
 	    for (ServerSocketThread thread : invalidThreads) {
 	        removeClient(thread);
 	    }
+	}
+	
+	public synchronized void addRoom(String roomInfo) {
+	    roomList.add(roomInfo);
+	    broadcastRoomList();
+	}
+
+	public synchronized void removeRoom(String roomName) {
+	    roomList.removeIf(room -> room.contains("|" + roomName + "|"));
+	    broadcastRoomList();
+	}
+
+	public synchronized void broadcastRoomList() {
+	    String roomListMessage = "[ROOM_LIST] " + String.join("\n", roomList);
+	    System.out.println("방 리스트 브로드캐스트: " + roomListMessage); // 디버그 로그
+	    broadCasting(roomListMessage);
 	}
 }

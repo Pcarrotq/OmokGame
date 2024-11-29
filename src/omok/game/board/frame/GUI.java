@@ -4,6 +4,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
+import java.net.*;
 
 import javax.swing.*;
 import javax.swing.text.*;
@@ -31,9 +32,36 @@ public class GUI extends JPanel {
     private String roomCreator;
     private boolean isPlayer1Ready = false; // 플레이어 1 레디 상태
     private boolean isPlayer2Ready = false; // 플레이어 2 레디 상태
+    
+    private Socket socket;
+    private PrintWriter out;
+    private BufferedReader in;
 
-    public GUI(String title) {
-    	System.out.println("GUI 생성됨: " + title);
+    public GUI(String roomName, String serverAddress, int port) {
+        System.out.println("GUI 생성됨: " + roomName);
+
+        // 서버 연결
+        connectToServer(serverAddress, port);
+        
+        try {
+            socket = new Socket(serverAddress, port);
+            out = new PrintWriter(socket.getOutputStream(), true);
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+            // 서버로부터 메시지를 수신하는 스레드 시작
+            new Thread(() -> {
+                try {
+                    String message;
+                    while ((message = in.readLine()) != null) {
+                        handleServerMessage(message);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "서버 연결 실패: " + e.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
+        }
     	
         setLayout(new BorderLayout());
         setSize(1500, 1000);
@@ -101,8 +129,13 @@ public class GUI extends JPanel {
         btnExit = new JButton("나가기");
         btnExit.setAlignmentX(Component.CENTER_ALIGNMENT); // Align center
         btnExit.addActionListener(e -> {
-            JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(this);
-            if (parentFrame != null) parentFrame.dispose();
+            if (roomName != null) {
+                out.println("[REMOVE_ROOM] " + roomName); // 서버에 방 삭제 요청 전송
+            }
+            JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(btnExit);
+            if (parentFrame != null) {
+                parentFrame.dispose();
+            }
         });
 
         buttonPanel.add(startButton);
@@ -259,6 +292,10 @@ public class GUI extends JPanel {
     }
 
     public void sendChatMessage(String nickname, String message) {
+        if (nickname == null || nickname.trim().isEmpty()) {
+            nickname = "Unknown"; // 닉네임이 없을 경우 기본값 설정
+        }
+        
         if (isSpectatorMode) {
             appendMessage("[관전] " + nickname + ": " + message, true);
         } else {
@@ -502,5 +539,96 @@ public class GUI extends JPanel {
         } else {
             startButton.setEnabled(false);
         }
+    }
+    
+ // 서버 메시지 처리
+    private void handleServerMessage(String message) {
+        SwingUtilities.invokeLater(() -> {
+            String[] parts = message.split(" ");
+            if (parts[0].equals("UPDATE")) {
+                int x = Integer.parseInt(parts[1]);
+                int y = Integer.parseInt(parts[2]);
+                String color = parts[3];
+
+                map.setMap(y, x); // 맵 업데이트
+                d.repaint(); // 화면 갱신
+            } else if (parts[0].equals("WIN")) {
+                JOptionPane.showMessageDialog(this, parts[1] + " 승리!", "게임 종료", JOptionPane.INFORMATION_MESSAGE);
+                map.reset();
+                d.repaint();
+            }
+        });
+    }
+    
+    public void connectToServer(String serverAddress, int serverPort) {
+        try {
+            socket = new Socket(serverAddress, serverPort);
+            out = new PrintWriter(socket.getOutputStream(), true);
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+            // 서버 메시지 수신 스레드 시작
+            new Thread(() -> {
+                try {
+                    String message;
+                    while ((message = in.readLine()) != null) {
+                        handleServerMessage(message);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+
+            System.out.println("서버 연결 성공: " + serverAddress + ":" + serverPort);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "서버 연결 실패: " + e.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
+            System.exit(1); // 연결 실패 시 프로그램 종료 (필요 시 사용자 경험에 맞게 수정)
+        }
+    }
+    
+    private void startListening() {
+        new Thread(() -> {
+            try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+                String receivedMessage;
+
+                while ((receivedMessage = in.readLine()) != null) {
+                    // 중복 출력 방지를 위해 메시지를 한 번만 처리
+                    final String message = receivedMessage.trim();
+                    if (!message.isEmpty()) {
+                        SwingUtilities.invokeLater(() -> displayMessage(message));
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+    
+    private void displayMessage(String message) {
+        try {
+            if (txtDisplay == null) {
+                txtDisplay = getTxtDisplay(); // txtDisplay가 null일 경우 초기화
+            }
+
+            StyledDocument doc = txtDisplay.getStyledDocument();
+            SimpleAttributeSet style = new SimpleAttributeSet();
+
+            // "스피커" 메시지는 빨간색으로 출력
+            if (message.contains("[스피커]")) {
+                StyleConstants.setForeground(style, Color.RED);
+                StyleConstants.setBold(style, true);
+            } else {
+                // 일반 메시지는 검은색으로 출력
+                StyleConstants.setForeground(style, Color.BLACK);
+            }
+
+            doc.insertString(doc.getLength(), message + "\n", style);
+            txtDisplay.setCaretPosition(doc.getLength()); // 스크롤을 맨 아래로 이동
+        } catch (BadLocationException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    private void removeRoom(String roomName) {
+        out.println("[REMOVE_ROOM] " + roomName); // 서버로 방 삭제 메시지 전송
     }
 }
