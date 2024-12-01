@@ -25,9 +25,7 @@ public class GUI extends JPanel {
     private JButton btnExit, startButton;
     private JLabel player1Profile, player1Label, player2Profile, player2Label;
     private JPanel player1Panel, player2Panel;
-    private JLabel turnDisplay, timerLabel, elapsedTimeLabel;
-    private Timer turnTimer;
-    private int remainingTime = 60;
+    private JLabel turnDisplay;
     private boolean isSpectatorMode = false; // 관전모드
     private boolean isGameStarted = false; // 게임 시작 여부 확인
     private String roomCreator;
@@ -79,18 +77,6 @@ public class GUI extends JPanel {
         d = new DrawBoard(map);
         add(d, BorderLayout.CENTER);
         
-        turnTimer = new Timer(1000, e -> {
-            if (remainingTime > 0) {
-                remainingTime--;
-                timerLabel.setText("남은 시간: " + remainingTime + "초");
-            } else {
-                // 시간이 다 되면 턴을 강제로 넘김
-                JOptionPane.showMessageDialog(this, "시간 초과! 턴이 넘어갑니다.", "시간 종료", JOptionPane.WARNING_MESSAGE);
-                turnTimer.stop();
-                changeTurn(); // 턴 변경
-            }
-        });
-        
         GridBagConstraints gbc = new GridBagConstraints();
 
         // 우측 패널 설정
@@ -100,11 +86,8 @@ public class GUI extends JPanel {
         // Timer and Turn Info
         JPanel infoPanel = new JPanel();
         infoPanel.setLayout(new GridLayout(2, 1, 5, 5));
-        timerLabel = new JLabel("남은 시간: " + remainingTime + "초", SwingConstants.CENTER);
-        timerLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
         turnDisplay = new JLabel("흑돌의 차례입니다.", SwingConstants.CENTER);
         turnDisplay.setFont(new Font("SansSerif", Font.BOLD, 16));
-        infoPanel.add(timerLabel);
         infoPanel.add(turnDisplay);
         gbc.gridx = 0;
         gbc.gridy = 0;
@@ -135,9 +118,6 @@ public class GUI extends JPanel {
 
             // 서버에 게임 시작 메시지 전송
             out.println("[START_GAME] " + roomName);
-
-            // 타이머 시작
-            startTurnTimer();
 
             // 차례 표시 초기화
             turnDisplay.setText("흑돌의 차례입니다.");
@@ -423,26 +403,7 @@ public class GUI extends JPanel {
     public void showPopUp(String message) {
         JOptionPane.showMessageDialog(this, message, "", JOptionPane.INFORMATION_MESSAGE);
     }
-    
-    private void startTurnTimer() {
-        if (turnTimer.isRunning()) {
-            turnTimer.stop(); // 이미 실행 중인 타이머가 있다면 중지
-        }
-        remainingTime = 60; // 남은 시간 초기화
-        timerLabel.setText("남은 시간: " + remainingTime + "초");
 
-        turnTimer = new Timer(1000, e -> {
-            if (remainingTime > 0) {
-                remainingTime--;
-                timerLabel.setText("남은 시간: " + remainingTime + "초");
-            } else {
-                // 시간이 다 되었을 때 서버에 타임아웃 알림
-                turnTimer.stop();
-                out.println("TIMEOUT");
-            }
-        });
-        turnTimer.start(); // 타이머 시작
-    }
     private void handleServerMessage(String message) {
         SwingUtilities.invokeLater(() -> {
             String[] parts = message.split(" ");
@@ -486,9 +447,6 @@ public class GUI extends JPanel {
         // 턴 정보 업데이트
         String currentTurn = map.getCheck() ? "흑돌의 차례입니다." : "백돌의 차례입니다.";
         turnDisplay.setText(currentTurn);
-
-        // 타이머 초기화 및 재시작
-        startTurnTimer();
     }
     
     public void mousePressed(MouseEvent e) {
@@ -509,13 +467,11 @@ public class GUI extends JPanel {
 
         // 승리 조건 확인
         if (map.winCheck(x, y)) {
-            turnTimer.stop(); // 타이머 정지
             JOptionPane.showMessageDialog(this, (map.getCheck() ? "백" : "흑") + " 승리!", "게임 종료", JOptionPane.INFORMATION_MESSAGE);
             map.reset(); // 맵 초기화
             d.repaint(); // 보드 다시 그리기
         } else {
             // 턴 변경
-            turnTimer.stop(); // 현재 타이머 정지
             changeTurn(); // 턴 변경 및 타이머 초기화
         }
 
@@ -542,11 +498,6 @@ public class GUI extends JPanel {
     }
     
     private void startGame() {
-        if (turnTimer.isRunning()) {
-            JOptionPane.showMessageDialog(this, "게임이 이미 시작되었습니다.", "알림", JOptionPane.INFORMATION_MESSAGE);
-            return;
-        }
-
         JOptionPane.showMessageDialog(this, "게임을 시작합니다!", "알림", JOptionPane.INFORMATION_MESSAGE);
 
         map.reset();
@@ -554,10 +505,6 @@ public class GUI extends JPanel {
 
         map.resetCheck(); // 차례 초기화
         turnDisplay.setText("흑돌의 차례입니다.");
-        remainingTime = 60;
-        timerLabel.setText("남은 시간: " + remainingTime + "초");
-
-        startTurnTimer();
 
         startButton.setEnabled(false);
     }
