@@ -77,14 +77,14 @@ public class ChatSet extends JDialog {
     private void changeBackgroundColor() {
         Color color = JColorChooser.showDialog(this, "배경색 선택", Color.WHITE);
         if (color != null) {
-            //chatRoom.updateBackgroundColor(color);
+            chatRoom.updateBackgroundColor(color);
         }
     }
 
     private void changeTextColor() {
         Color color = JColorChooser.showDialog(this, "글자색 선택", Color.BLACK);
         if (color != null) {
-            //chatRoom.updateTextColor(color);
+            chatRoom.updateTextColor(color);
         }
     }
 
@@ -92,7 +92,7 @@ public class ChatSet extends JDialog {
         String selectedFamily = (String) fontFamilyCombo.getSelectedItem();
         int selectedSize = (Integer) fontSizeCombo.getSelectedItem();
         Font newFont = new Font(selectedFamily, Font.PLAIN, selectedSize);
-        //chatRoom.updateFont(newFont);
+        chatRoom.updateFont(newFont);
     }
 
     private void changeMyBubbleColor() {
@@ -102,7 +102,7 @@ public class ChatSet extends JDialog {
             Color.YELLOW
         );
         if (color != null) {
-           // chatRoom.updateMyBubbleColor(color);
+           chatRoom.updateMyBubbleColor(color);
         }
     }
 

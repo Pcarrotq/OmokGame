@@ -8,7 +8,6 @@ import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 
 import omok.additional.CharacterSelectionScreen;
-import omok.chat.ChatInventory;
 import omok.chat.client.ClientGui;
 import omok.game.board.frame.GUI;
 import omok.game.character.ConectUserInfo;
@@ -167,6 +166,7 @@ public class Lobby extends JFrame {
         buttonPanel.add(createGameButton);
         
         JButton joinGameButton = new JButton("게임 입장");
+        joinGameButton.setPreferredSize(new Dimension(120, 50)); // 너비 120, 높이 50
         joinGameButton.addActionListener(e -> {
             int selectedRow = table.getSelectedRow();
 
@@ -271,13 +271,6 @@ public class Lobby extends JFrame {
             SwingUtilities.invokeLater(() -> new PlayerInfo(loggedInUserId));
         });
         buttonPanel.add(myInfoButton);
-        
-        JButton chattingButton = new JButton("대화");
-        chattingButton.addActionListener(e -> {
-            // ChatInventory 화면 열기
-            SwingUtilities.invokeLater(ChatInventory::new);
-        });
-        buttonPanel.add(chattingButton);
         
         JButton exitButton = new JButton("나가기");
         exitButton.addActionListener(e -> {

@@ -17,6 +17,9 @@ public class ClientGui extends JFrame {
     private JTextPane jtp;
     private StyledDocument document;
     private String username;
+    
+    private Color myBubbleColor = Color.YELLOW; // 기본 색상
+    private Color otherBubbleColor = Color.LIGHT_GRAY; // 기본 색상
 
     private Socket socket;
     private PrintWriter out;
@@ -54,6 +57,23 @@ public class ClientGui extends JFrame {
 
         sendButton = showSendButton();
         add(sendButton);
+
+        fileButton.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+            int returnValue = fileChooser.showOpenDialog(this);
+            if (returnValue == JFileChooser.APPROVE_OPTION) {
+                File file = fileChooser.getSelectedFile();
+                textArea.setText(file.toString());
+            }
+        });
+        
+        // ChatSet 버튼 추가
+        JButton settingsButton = new JButton("설정");
+        settingsButton.setBounds(320, 460, 68, 40); // 버튼 위치 및 크기 조정
+        add(settingsButton);
+
+        // ChatSet 창 열기 이벤트
+        settingsButton.addActionListener(e -> openChatSettings());
 
         fileButton.addActionListener(e -> {
             JFileChooser fileChooser = new JFileChooser();
@@ -196,10 +216,51 @@ public class ClientGui extends JFrame {
             if (sender.equals("System")) {
                 StyleConstants.setForeground(alignAttr, Color.GRAY); // 시스템 메시지를 회색으로 표시
             } else {
-                StyleConstants.setForeground(alignAttr, Color.BLACK); // 기본 메시지는 검정색
+            	SimpleAttributeSet bubbleAttr = new SimpleAttributeSet();
+                if (align == AlignEnum.RIGHT) { // 내 메시지
+                    StyleConstants.setBackground(bubbleAttr, myBubbleColor);
+                } else { // 상대 메시지
+                    StyleConstants.setBackground(bubbleAttr, otherBubbleColor);
+                }
             }
         } catch (BadLocationException e) {
             e.printStackTrace();
+        }
+    }
+    
+    private void openChatSettings() {
+        SwingUtilities.invokeLater(() -> {
+            ChatSet chatSetDialog = new ChatSet(this); // ChatSet 창 생성
+            chatSetDialog.setLocationRelativeTo(this); // 현재 창 중심에 위치
+            chatSetDialog.setVisible(true);
+        });
+    }
+    
+    public void updateBackgroundColor(Color color) {
+        jtp.setBackground(color);
+    }
+
+    public void updateTextColor(Color color) {
+        StyleContext context = new StyleContext();
+        StyledDocument doc = new DefaultStyledDocument(context);
+        SimpleAttributeSet attr = new SimpleAttributeSet();
+        StyleConstants.setForeground(attr, color);
+        document.setCharacterAttributes(0, document.getLength(), attr, false);
+    }
+
+    public void updateFont(Font font) {
+        jtp.setFont(font);
+    }
+
+    public void updateMyBubbleColor(Color color) {
+        if (color != null) {
+            myBubbleColor = color;
+        }
+    }
+
+    public void updateOtherBubbleColor(Color color) {
+        if (color != null) {
+            otherBubbleColor = color;
         }
     }
 }
