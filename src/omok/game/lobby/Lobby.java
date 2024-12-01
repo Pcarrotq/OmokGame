@@ -383,8 +383,6 @@ public class Lobby extends JFrame {
         // 메인 패널 구성
         mainPanel.add(topPanel, BorderLayout.CENTER);
         mainPanel.add(bottomPanel, BorderLayout.SOUTH);
-        
-        startAutoRoomSync(); // 방 리스트 자동 갱신 시작
 	}
 	
 	private void sendMessage() {
@@ -731,12 +729,5 @@ public class Lobby extends JFrame {
         gameFrame.setVisible(true);
 
         JOptionPane.showMessageDialog(frame, "게임 방에 입장하였습니다!", "입장 성공", JOptionPane.INFORMATION_MESSAGE);
-    }
-    
-    private void startAutoRoomSync() {
-        Timer timer = new Timer(5000, e -> {
-            out.println("[ROOM_LIST]"); // 주기적으로 서버에 방 리스트 요청
-        });
-        timer.start();
     }
 }
