@@ -54,8 +54,11 @@ public class ServerSocketThread extends Thread {
 	@Override
 	public void run() {
 	    try {
-	    	server.addClient(this); // 클라이언트 추가
+	        server.addClient(this);
 	        in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+	        // 연결 직후 방 리스트 전송
+	        sendMessage("[ROOM_LIST] " + String.join("\n", server.getRoomList()));
 
 	        String receivedMessage;
 	        while ((receivedMessage = in.readLine()) != null) {
@@ -86,7 +89,7 @@ public class ServerSocketThread extends Thread {
 	                if (name == null || name.isEmpty()) {
 	                    name = DBConnection.getNickname();
 	                }
-	                String roomInfo = String.join("|", "0", roomName, name, "1/2", "WAITING");
+	                String roomInfo = String.format("0|%s|%s|1/2|WAITING", roomName, name);
 	                server.addRoom(roomInfo);
 	                server.broadcastRoomList();
 	                continue;
@@ -165,7 +168,9 @@ public class ServerSocketThread extends Thread {
 	        }
 	        
             // 일반 메시지 브로드캐스트
-            server.broadCasting(receivedMessage);
+	        if (!receivedMessage.startsWith("[COMMAND]")) {
+	            server.broadCasting(receivedMessage);
+	        }
 	    } catch (IOException e) {
 	        System.out.println("클라이언트 연결 종료: " + e.getMessage());
 	    } finally {

@@ -383,6 +383,8 @@ public class Lobby extends JFrame {
         // 메인 패널 구성
         mainPanel.add(topPanel, BorderLayout.CENTER);
         mainPanel.add(bottomPanel, BorderLayout.SOUTH);
+        
+        startAutoRoomSync(); // 방 리스트 자동 갱신 시작
 	}
 	
 	private void sendMessage() {
@@ -615,28 +617,16 @@ public class Lobby extends JFrame {
     }
     
     private void updateRoomList(String roomData) {
-        System.out.println("서버로부터 받은 방 리스트: " + roomData.trim());
-
         SwingUtilities.invokeLater(() -> {
-            tableModel.setRowCount(0); // 기존 테이블 데이터 초기화
-
+            tableModel.setRowCount(0); // 테이블 초기화
             if (!roomData.isEmpty()) {
                 String[] rooms = roomData.split("\n");
-                int number = 1; // 방 번호 초기화
                 for (String room : rooms) {
                     String[] details = room.split("\\|");
-                    if (details.length == 5) { // 유효한 데이터만 추가
-                        for (int i = 0; i < details.length; i++) {
-                            details[i] = details[i].trim(); // 공백 제거
-                        }
-                        // 번호를 추가하여 테이블에 추가
-                        tableModel.addRow(new Object[] {
-                            number++, // 방 번호
-                            details[1], // 방 이름
-                            details[2], // 방 생성자(닉네임)
-                            details[3], // 현재 인원 / 최대 인원
-                            details[4]  // 상태 (WAITING, IN_PROGRESS 등)
-                        });
+                    if (details.length == 5) {
+                        tableModel.addRow(details); // 그대로 추가
+                    } else {
+                        System.out.println("잘못된 방 데이터: " + room); // 디버깅 로그
                     }
                 }
             }
@@ -741,5 +731,12 @@ public class Lobby extends JFrame {
         gameFrame.setVisible(true);
 
         JOptionPane.showMessageDialog(frame, "게임 방에 입장하였습니다!", "입장 성공", JOptionPane.INFORMATION_MESSAGE);
+    }
+    
+    private void startAutoRoomSync() {
+        Timer timer = new Timer(5000, e -> {
+            out.println("[ROOM_LIST]"); // 주기적으로 서버에 방 리스트 요청
+        });
+        timer.start();
     }
 }
