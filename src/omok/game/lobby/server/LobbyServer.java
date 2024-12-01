@@ -34,7 +34,14 @@ public class LobbyServer {
 	}
 	// synchronized : 쓰레드들이 공유데이터를 함께 사용하지 못하도록 하는 것
 	// 클라이언트가 입장 시 호출되며, 리스트에 클라이언트 담당 쓰레드 저장
-	private synchronized void addClient(ServerSocketThread thread) {
+	public synchronized void addClient(ServerSocketThread thread) {
+	    for (ServerSocketThread existingThread : list) {
+	        if (existingThread.getSocket().getInetAddress().equals(thread.getSocket().getInetAddress())
+	            && existingThread.getSocket().getPort() == thread.getSocket().getPort()) {
+	            System.out.println("중복 연결이 감지되어 추가하지 않습니다.");
+	            return;
+	        }
+	    }
 	    list.add(thread);
 	    System.out.println("Client 1명 입장. 총 " + list.size() + "명");
 	}
@@ -43,6 +50,9 @@ public class LobbyServer {
 	    if (list.contains(thread)) {
 	        list.remove(thread);
 	        System.out.println("Client 1명 퇴장. 총 " + list.size() + "명");
+
+	        // 방 상태 업데이트
+	        thread.handleClientDisconnection();
 	    } else {
 	        System.out.println("리스트에 존재하지 않는 클라이언트입니다.");
 	    }
@@ -83,12 +93,33 @@ public class LobbyServer {
 
 	public synchronized void removeRoom(String roomName) {
 	    roomList.removeIf(room -> room.contains("|" + roomName + "|"));
-	    broadcastRoomList();
+	    System.out.println("방 삭제됨: " + roomName);
+	    broadcastRoomList(); // 방 리스트 브로드캐스트
 	}
 
 	public synchronized void broadcastRoomList() {
+	    List<String> trimmedRoomList = new ArrayList<>();
+	    for (String room : roomList) {
+	        trimmedRoomList.add(room.trim()); // 공백 제거
+	    }
 	    String roomListMessage = "[ROOM_LIST] " + String.join("\n", roomList);
-	    System.out.println("방 리스트 브로드캐스트: " + roomListMessage); // 디버그 로그
+	    System.out.println("브로드캐스트 방 리스트: " + roomListMessage);
 	    broadCasting(roomListMessage);
+	}
+	
+	// 방 리스트 반환
+	public synchronized List<String> getRoomList() {
+	    return new ArrayList<>(roomList); // 리스트 복사본 반환 (원본 보호)
+	}
+	
+	// 방 정보 업데이트
+	public synchronized void updateRoom(String oldRoom, String newRoom) {
+	    int index = roomList.indexOf(oldRoom);
+	    if (index != -1) {
+	        roomList.set(index, newRoom); // 방 상태 변경
+	        broadcastRoomList(); // 방 리스트 브로드캐스트
+	    } else {
+	        System.out.println("업데이트할 방을 찾을 수 없습니다: " + oldRoom);
+	    }
 	}
 }

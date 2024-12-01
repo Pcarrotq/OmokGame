@@ -32,6 +32,11 @@ public class ServerSocketThread extends Thread {
 	        server.removeClient(this); // 리스트에서 해당 클라이언트 제거
 	    }
 	}
+	
+    public Socket getSocket() {
+        return socket;
+    }
+	
 	// 클라이언트로 메시지 출력
 	public void sendMessage(String str) {
 	    try {
@@ -49,6 +54,7 @@ public class ServerSocketThread extends Thread {
 	@Override
 	public void run() {
 	    try {
+	    	server.addClient(this); // 클라이언트 추가
 	        in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
 	        String receivedMessage;
@@ -63,12 +69,63 @@ public class ServerSocketThread extends Thread {
 	            }
 
 	            if (receivedMessage.startsWith("[CREATE_ROOM]")) {
-	                String roomName = receivedMessage.substring(13); // 방 이름 추출
+	            	String roomName = receivedMessage.substring(13).trim(); // 방 이름 추출, 공백 제거
 	                String roomInfo = "0|" + roomName + "|" + name + "|1/2|WAITING"; // 방 정보 생성
 	                server.addRoom(roomInfo); // 서버에 방 추가 및 브로드캐스트
 	            } else if (receivedMessage.startsWith("[REMOVE_ROOM]")) {
-	                String roomName = receivedMessage.substring(13); // 방 이름 추출
-	                server.removeRoom(roomName); // 방 삭제 처리
+	                String roomName = receivedMessage.substring(13).trim(); // 방 이름 추출
+	                server.removeRoom(roomName); // 서버에서 방 삭제
+	                System.out.println("방 삭제 요청 처리됨: " + roomName);
+	            } else if (receivedMessage.startsWith("[JOIN_ROOM]")) {
+	                String roomName = receivedMessage.substring(11).trim(); // 방 이름 추출 및 공백 제거
+	                synchronized (server) {
+	                    for (String room : server.getRoomList()) {
+	                        if (room.contains("|" + roomName + "|")) {
+	                            String[] roomDetails = room.split("\\|");
+	                            String currentPlayers = roomDetails[3];
+	                            String[] playerCounts = currentPlayers.split("/");
+
+	                            int currentCount = Integer.parseInt(playerCounts[0]);
+	                            int maxCount = Integer.parseInt(playerCounts[1]);
+
+	                            if (currentCount < maxCount && room.endsWith("WAITING")) {
+	                                // 방 입장 가능
+	                                currentCount++;
+	                                String updatedPlayers = currentCount + "/" + maxCount;
+	                                String updatedRoom = room.replace(currentPlayers, updatedPlayers);
+
+	                                if (currentCount == maxCount) {
+	                                    updatedRoom = updatedRoom.replace("WAITING", "IN_PROGRESS");
+	                                }
+
+	                                server.updateRoom(room, updatedRoom);
+	                                sendMessage("[JOIN_SUCCESS]");
+	                                server.broadcastRoomList();
+	                                return;
+	                            } else if (room.endsWith("IN_PROGRESS")) {
+	                                // 방이 진행 중
+	                                sendMessage("[JOIN_FAILURE_STARTED]");
+	                                return;
+	                            }
+	                        }
+	                    }
+	                    // 방이 존재하지 않음
+	                    sendMessage("[JOIN_FAILURE]");
+	                }
+	            } else if (receivedMessage.startsWith("[START_GAME]")) {
+	                String roomName = receivedMessage.substring(12).trim();
+	                synchronized (server) {
+	                    for (String room : server.getRoomList()) {
+	                        if (room.contains("|" + roomName + "|") && room.endsWith("WAITING")) {
+	                            String updatedRoom = room.replace("WAITING", "IN_PROGRESS");
+	                            server.updateRoom(room, updatedRoom);
+	                            server.broadcastRoomList();
+	                            System.out.println("방 상태가 IN_PROGRESS로 변경됨: " + roomName);
+	                            return;
+	                        }
+	                    }
+	                    sendMessage("[START_GAME_FAILURE]");
+	                }
 	            } else {
 	                server.broadCasting(receivedMessage); // 일반 메시지 브로드캐스트
 	            }
@@ -77,11 +134,7 @@ public class ServerSocketThread extends Thread {
 	        System.out.println("클라이언트 연결 종료: " + e.getMessage());
 	    } finally {
 	        server.removeClient(this); // 연결 종료 시 서버에서 제거
-	        try {
-	            socket.close();
-	        } catch (IOException e) {
-	            e.printStackTrace();
-	        }
+	        handleClientDisconnection();
 	    }
 	}
 	
@@ -91,5 +144,70 @@ public class ServerSocketThread extends Thread {
 	        System.out.println("DB에서 닉네임 가져옴: " + name);
 	    }
 	    return name;
+	}
+	
+	public void handleClientDisconnection() {
+	    for (String room : server.getRoomList()) {
+	        if (room.contains("|" + name + "|")) {
+	            String[] roomDetails = room.split("\\|");
+	            String currentPlayers = roomDetails[3];
+	            String[] playerCounts = currentPlayers.split("/");
+
+	            int currentCount = Integer.parseInt(playerCounts[0]) - 1;
+	            String updatedPlayers = currentCount + "/" + playerCounts[1];
+	            String updatedRoom = room.replace(currentPlayers, updatedPlayers);
+
+	            if (currentCount == 0) {
+	                server.removeRoom(roomDetails[1]); // 방 삭제
+	            } else {
+	                server.updateRoom(room, updatedRoom);
+	            }
+
+	            server.broadcastRoomList();
+	            break;
+	        }
+	    }
+	}
+	
+	private void handleJoinRoom(String roomName) {
+	    synchronized (server) {
+	        roomName = roomName.trim(); // 클라이언트로부터 받은 방 이름 트림 처리
+
+	        for (String room : server.getRoomList()) {
+	            String[] roomDetails = room.split("\\|");
+	            String serverRoomName = roomDetails[1].trim(); // 서버의 방 이름 트림 처리
+
+	            if (serverRoomName.equals(roomName)) {
+	                String currentPlayers = roomDetails[3];
+	                String[] playerCounts = currentPlayers.split("/");
+
+	                int currentCount = Integer.parseInt(playerCounts[0]);
+	                int maxCount = Integer.parseInt(playerCounts[1]);
+
+	                if (currentCount < maxCount && room.endsWith("WAITING")) {
+	                    // 입장 가능 상태
+	                    currentCount++;
+	                    String updatedPlayers = currentCount + "/" + maxCount;
+	                    String updatedRoom = room.replace(currentPlayers, updatedPlayers);
+
+	                    if (currentCount == maxCount) {
+	                        updatedRoom = updatedRoom.replace("WAITING", "IN_PROGRESS");
+	                    }
+
+	                    server.updateRoom(room, updatedRoom);
+	                    sendMessage("[JOIN_SUCCESS]");
+	                    server.broadcastRoomList();
+	                    return;
+	                } else if (room.endsWith("IN_PROGRESS")) {
+	                    // 방이 이미 게임 중 상태
+	                    sendMessage("[JOIN_FAILURE_STARTED]");
+	                    return;
+	                }
+	            }
+	        }
+	        // 방 이름이 존재하지 않거나 입장 불가 상태
+	        sendMessage("[JOIN_FAILURE]");
+	        System.out.println("입장 실패: 방을 찾을 수 없거나 상태가 올바르지 않음 (" + roomName + ")");
+	    }
 	}
 }

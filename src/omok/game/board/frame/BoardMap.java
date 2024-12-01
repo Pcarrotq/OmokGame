@@ -1,6 +1,6 @@
 package omok.game.board.frame;
 
-public class Map {
+public class BoardMap {
     private short[][] map; // 맵의 배열: 1일 때 흑, -1일 때 백, 0일 때 돌이 안 놓여짐
     private static final short BLACK = 1;
     private static final short WHITE = -1;
@@ -8,7 +8,7 @@ public class Map {
     private final int SIZE = 20;
     private boolean checkBNW = true; // 흑 차례, 백 차례 확인
 
-    public Map() {
+    public BoardMap() {
         map = new short[SIZE][SIZE];
     }
 
@@ -26,6 +26,15 @@ public class Map {
 
     public boolean getCheck() {
         return checkBNW;
+    }
+    
+    public void setMap(int y, int x, short stoneColor) {
+        // stoneColor를 통해 흑돌(BLACK), 백돌(WHITE) 설정
+        if (stoneColor == BLACK || stoneColor == WHITE) {
+            map[y][x] = stoneColor;
+        } else {
+            throw new IllegalArgumentException("유효하지 않은 돌 색상입니다. 흑돌 또는 백돌만 허용됩니다.");
+        }
     }
 
     public void changeCheck() {

@@ -54,16 +54,10 @@ public class CharacterSelectionScreen extends JFrame {
 
         button.addActionListener(e -> {
             String selectedCharacter = "Character " + (index + 1);
+
             if (selectionListener != null) {
                 selectionListener.accept(selectedCharacter); // 선택된 캐릭터 정보를 전달
             }
-
-            // 게임 GUI를 열고 캐릭터 정보를 설정
-            SwingUtilities.invokeLater(() -> {
-                GUI gameGui = new GUI("오목방", "127.0.0.1", 8080); // 나중에 수정하기
-                gameGui.setPlayer1Profile(selectedCharacter);
-                gameGui.setVisible(true);
-            });
 
             dispose(); // 캐릭터 선택 창 닫기
         });

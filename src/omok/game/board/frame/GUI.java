@@ -17,21 +17,20 @@ import omok.member.db.DBConnection;
 @SuppressWarnings("serial")
 public class GUI extends JPanel {
     private Container c;
-    private Map map;
+    private BoardMap map;
     private DrawBoard d;
     private JTextPane txtDisplay;
     private JTextField txtInput;
     private JButton btnSend;
-    private JButton btnExit, startButton, readyButton;
+    private JButton btnExit, startButton;
     private JLabel player1Profile, player1Label, player2Profile, player2Label;
     private JPanel player1Panel, player2Panel;
     private JLabel turnDisplay, timerLabel, elapsedTimeLabel;
     private Timer turnTimer;
     private int remainingTime = 60;
-    private boolean isSpectatorMode = false;
+    private boolean isSpectatorMode = false; // 관전모드
+    private boolean isGameStarted = false; // 게임 시작 여부 확인
     private String roomCreator;
-    private boolean isPlayer1Ready = false; // 플레이어 1 레디 상태
-    private boolean isPlayer2Ready = false; // 플레이어 2 레디 상태
     
     private Socket socket;
     private PrintWriter out;
@@ -39,11 +38,9 @@ public class GUI extends JPanel {
 
     public GUI(String roomName, String serverAddress, int port) {
         System.out.println("GUI 생성됨: " + roomName);
-
-        // 서버 연결
-        connectToServer(serverAddress, port);
         
         try {
+        	connectToServer(serverAddress, port);
             socket = new Socket(serverAddress, port);
             out = new PrintWriter(socket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -59,6 +56,18 @@ public class GUI extends JPanel {
                     e.printStackTrace();
                 }
             }).start();
+            
+            setLayout(new BorderLayout());
+
+            // 예제 UI 컴포넌트 추가
+            JLabel label = new JLabel("게임 화면: " + roomName);
+            label.setHorizontalAlignment(SwingConstants.CENTER);
+            add(label, BorderLayout.CENTER);
+
+            revalidate(); // 레이아웃 갱신
+            repaint();    // 화면 갱신
+            
+            System.out.println("GUI 초기화 완료: " + roomName);
         } catch (IOException e) {
             JOptionPane.showMessageDialog(this, "서버 연결 실패: " + e.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
         }
@@ -66,7 +75,7 @@ public class GUI extends JPanel {
         setLayout(new BorderLayout());
         setSize(1500, 1000);
 
-        map = new Map();
+        map = new BoardMap();
         d = new DrawBoard(map);
         add(d, BorderLayout.CENTER);
         
@@ -107,23 +116,32 @@ public class GUI extends JPanel {
         roomCreator = Login.getLoggedInUserId();
         
         JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new GridLayout(1, 3, 10, 10));
+        buttonPanel.setLayout(new GridLayout(1, 3, 5, 5));
         
         // Add 'Start' Button
         startButton = new JButton("시작");
         startButton.setEnabled(false); // Only room creator can enable
         startButton.setEnabled(Login.getLoggedInUserId().equals(roomCreator));
         startButton.addActionListener(e -> {
-            if (!Login.getLoggedInUserId().equals(roomCreator)) {
-                JOptionPane.showMessageDialog(this, "방장만 시작 버튼을 누를 수 있습니다.", "오류", JOptionPane.ERROR_MESSAGE);
+            if (isGameStarted) {
+                JOptionPane.showMessageDialog(this, "게임이 이미 시작되었습니다.", "오류", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            startGame(); // 게임 시작 로직 호출
+
+            isGameStarted = true; // 게임 시작 상태 업데이트
+            startButton.setEnabled(false); // '시작' 버튼 비활성화
+
+            JOptionPane.showMessageDialog(this, "게임이 시작되었습니다!", "알림", JOptionPane.INFORMATION_MESSAGE);
+
+            // 서버에 게임 시작 메시지 전송
+            out.println("[START_GAME] " + roomName);
+
+            // 타이머 시작
+            startTurnTimer();
+
+            // 차례 표시 초기화
+            turnDisplay.setText("흑돌의 차례입니다.");
         });
-        
-        // Add 'Ready' Button
-        readyButton = new JButton("레디");
-        readyButton.addActionListener(e -> toggleReadyState());
 
         // Add 'Exit' Button
         btnExit = new JButton("나가기");
@@ -139,7 +157,6 @@ public class GUI extends JPanel {
         });
 
         buttonPanel.add(startButton);
-        buttonPanel.add(readyButton);
         buttonPanel.add(btnExit);
         gbc.gridy = 1;
         gbc.weighty = 0.2;
@@ -220,6 +237,8 @@ public class GUI extends JPanel {
         d.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent arg0) {
+            	if (!isGameStarted) return; // 게임이 시작되지 않았으면 무시
+            	
                 int boardSize = Math.min(d.getWidth(), d.getHeight()) - 20;
                 int cellSize = boardSize / map.getSize();
 
@@ -255,6 +274,9 @@ public class GUI extends JPanel {
                         turnDisplay.setText(currentTurn);
                     }
                 });
+                
+                // 서버에 돌 배치 요청
+                out.println("PLACE " + x + " " + y);
             }
         });
     }
@@ -392,6 +414,11 @@ public class GUI extends JPanel {
     }
 
     public void setPlayer1Profile(String characterName) {
+        if (player1Profile == null) {
+            player1Profile = new JLabel();
+            player1Panel.add(player1Profile, BorderLayout.CENTER); // 프로필 패널에 추가
+        }
+
         player1Profile.setIcon(createCharacterIcon(characterName));
         revalidate();
         repaint();
@@ -403,9 +430,9 @@ public class GUI extends JPanel {
     
     private void startTurnTimer() {
         if (turnTimer.isRunning()) {
-            turnTimer.stop(); // 이미 실행 중인 타이머가 있으면 중지
+            turnTimer.stop(); // 이미 실행 중인 타이머가 있다면 중지
         }
-        remainingTime = 60;
+        remainingTime = 60; // 남은 시간 초기화
         timerLabel.setText("남은 시간: " + remainingTime + "초");
 
         turnTimer = new Timer(1000, e -> {
@@ -413,17 +440,42 @@ public class GUI extends JPanel {
                 remainingTime--;
                 timerLabel.setText("남은 시간: " + remainingTime + "초");
             } else {
-                // 시간이 다 되었을 때 상대방 승리 처리
+                // 시간이 다 되었을 때 서버에 타임아웃 알림
                 turnTimer.stop();
-                String winner = map.getCheck() ? "백돌" : "흑돌"; // 상대방의 승리
-                JOptionPane.showMessageDialog(this, "시간 초과! " + winner + " 승리!", "게임 종료", JOptionPane.INFORMATION_MESSAGE);
-                
-                // 게임 종료 및 맵 초기화
-                map.reset();
-                d.repaint();
+                out.println("TIMEOUT");
             }
         });
-        turnTimer.start();
+        turnTimer.start(); // 타이머 시작
+    }
+    private void handleServerMessage(String message) {
+        SwingUtilities.invokeLater(() -> {
+            String[] parts = message.split(" ");
+            switch (parts[0]) {
+                case "UPDATE":
+                    int x = Integer.parseInt(parts[1]);
+                    int y = Integer.parseInt(parts[2]);
+                    map.setMap(y, x);
+                    d.repaint();
+                    break;
+
+                case "WIN":
+                    String winner = parts[1].equals("BLACK") ? "흑돌" : "백돌";
+                    JOptionPane.showMessageDialog(this, winner + " 승리!", "게임 종료", JOptionPane.INFORMATION_MESSAGE);
+                    resetGame(); // 게임 초기화
+                    break;
+
+                case "TURN_TIMEOUT":
+                    // 타이머 초과는 더 이상 처리하지 않음, 승리 로직으로 대체됨.
+                    break;
+            }
+        });
+    }
+    private void resetGame() {
+        isGameStarted = false; // 게임 상태 초기화
+        startButton.setEnabled(true); // '시작' 버튼 활성화
+        map.reset(); // 맵 초기화
+        d.repaint(); // 보드 초기화
+        turnDisplay.setText("게임이 종료되었습니다. '시작' 버튼을 눌러 게임을 시작하세요.");
     }
 
     private void changeTurn() {
@@ -494,11 +546,6 @@ public class GUI extends JPanel {
             return;
         }
 
-        if (!isPlayer1Ready || !isPlayer2Ready) {
-            JOptionPane.showMessageDialog(this, "모든 플레이어가 준비되지 않았습니다.", "알림", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
         JOptionPane.showMessageDialog(this, "게임을 시작합니다!", "알림", JOptionPane.INFORMATION_MESSAGE);
 
         map.reset();
@@ -512,52 +559,6 @@ public class GUI extends JPanel {
         startTurnTimer();
 
         startButton.setEnabled(false);
-        readyButton.setEnabled(false);
-    }
-    
-    private void toggleReadyState() {
-        if (Login.getLoggedInUserId().equals(roomCreator)) {
-            // 방장의 레디 상태 토글
-            isPlayer1Ready = !isPlayer1Ready;
-            player1Panel.setBackground(isPlayer1Ready ? Color.YELLOW : null); // 배경색 변경
-            readyButton.setText(isPlayer1Ready ? "취소" : "레디");
-        } else {
-            // 상대방의 레디 상태 토글
-            isPlayer2Ready = !isPlayer2Ready;
-            player2Panel.setBackground(isPlayer2Ready ? Color.YELLOW : null); // 배경색 변경
-            readyButton.setText(isPlayer2Ready ? "취소" : "레디");
-        }
-
-        // 두 플레이어가 모두 레디 상태인지 확인
-        updateStartButtonState();
-    }
-    
-    private void updateStartButtonState() {
-        // 방장과 상대방이 모두 레디 상태인 경우에만 시작 버튼 활성화
-        if (isPlayer1Ready && isPlayer2Ready) {
-            startButton.setEnabled(true);
-        } else {
-            startButton.setEnabled(false);
-        }
-    }
-    
- // 서버 메시지 처리
-    private void handleServerMessage(String message) {
-        SwingUtilities.invokeLater(() -> {
-            String[] parts = message.split(" ");
-            if (parts[0].equals("UPDATE")) {
-                int x = Integer.parseInt(parts[1]);
-                int y = Integer.parseInt(parts[2]);
-                String color = parts[3];
-
-                map.setMap(y, x); // 맵 업데이트
-                d.repaint(); // 화면 갱신
-            } else if (parts[0].equals("WIN")) {
-                JOptionPane.showMessageDialog(this, parts[1] + " 승리!", "게임 종료", JOptionPane.INFORMATION_MESSAGE);
-                map.reset();
-                d.repaint();
-            }
-        });
     }
     
     public void connectToServer(String serverAddress, int serverPort) {
@@ -583,24 +584,6 @@ public class GUI extends JPanel {
             JOptionPane.showMessageDialog(this, "서버 연결 실패: " + e.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
             System.exit(1); // 연결 실패 시 프로그램 종료 (필요 시 사용자 경험에 맞게 수정)
         }
-    }
-    
-    private void startListening() {
-        new Thread(() -> {
-            try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
-                String receivedMessage;
-
-                while ((receivedMessage = in.readLine()) != null) {
-                    // 중복 출력 방지를 위해 메시지를 한 번만 처리
-                    final String message = receivedMessage.trim();
-                    if (!message.isEmpty()) {
-                        SwingUtilities.invokeLater(() -> displayMessage(message));
-                    }
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }).start();
     }
     
     private void displayMessage(String message) {

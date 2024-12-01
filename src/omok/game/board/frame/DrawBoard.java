@@ -6,13 +6,13 @@ import javax.swing.JPanel;
 
 @SuppressWarnings("serial")
 public class DrawBoard extends JPanel {
-    private Map map;
+    private BoardMap map;
     private static final int STONE_SIZE = 35;
     private static final Color BOARD_COLOR = new Color(206, 167, 61);
     private static final Color BLACK_STONE_COLOR = Color.BLACK;
     private static final Color WHITE_STONE_COLOR = Color.WHITE;
 
-    public DrawBoard(Map map) {
+    public DrawBoard(BoardMap map) {
         setBackground(Color.WHITE);
         setLayout(null);
         this.map = map;
