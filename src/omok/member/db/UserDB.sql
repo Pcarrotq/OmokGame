@@ -38,6 +38,8 @@ ALTER TABLE user_info ADD reason VARCHAR2(255);
 -- 추가 완료
 ALTER TABLE user_info ADD score INT DEFAULT 0;
 ALTER TABLE user_info ADD rank INT;
+-- 추가 완료
+ALTER TABLE user_info ADD role VARCHAR(20) DEFAULT 'USER';
 
 
 DROP TABLE user_info;

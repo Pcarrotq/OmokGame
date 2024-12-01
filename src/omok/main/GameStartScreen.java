@@ -40,7 +40,7 @@ public class GameStartScreen extends JFrame {
         showLoginScreen();
     }
     
-    private void showLoginScreen() {
+    public void showLoginScreen() {
         // JPanel 생성 및 레이아웃 설정
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS)); // Y축으로 구성 요소 배치
@@ -76,7 +76,12 @@ public class GameStartScreen extends JFrame {
                             } else if ("DELETED".equals(status)) {
                                 JOptionPane.showMessageDialog(null, "삭제된 유저입니다.", "로그인 실패", JOptionPane.ERROR_MESSAGE);
                             } else {
-                            	showAdminScreen(); // 정상 상태일 경우 메인 화면 표시
+                                String role = getUserRole(userId); // 사용자 역할 확인
+                                if ("ADMIN".equals(role)) {
+                                    showAdminScreen(); // 관리자 화면 표시
+                                } else {
+                                    showUserScreen(); // 일반 사용자 화면 표시
+                                }
                             }
                         } else {
                             JOptionPane.showMessageDialog(null, "로그인 실패", "오류", JOptionPane.ERROR_MESSAGE);
@@ -125,8 +130,151 @@ public class GameStartScreen extends JFrame {
         setVisible(true);
     }
     
-    // 메인 화면 구성
-    public void showAdminScreen() {
+    public void showUserScreen() { // 일반 유저 화면
+        getContentPane().removeAll(); // 기존 화면 제거
+        mainPanel = new JPanel();
+        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS)); // Y축으로 구성 요소 배치
+
+        // JLabel: 게임 제목
+        JLabel titleLabel = new JLabel("Omok Game", SwingConstants.CENTER);
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT); // 가운데 정렬
+        titleLabel.setFont(new Font("Serif", Font.BOLD, 30));
+        mainPanel.add(Box.createVerticalStrut(50)); // 여백 추가
+        mainPanel.add(titleLabel);
+
+        // Start 버튼
+        JButton startButton = new JButton("Start");
+        startButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        startButton.setMaximumSize(new Dimension(100, 30));
+        startButton.addActionListener(e -> {
+            // DB에서 모든 유저의 닉네임 가져오기
+            List<String> nicknames = new ArrayList<>();
+            String sql = "SELECT nickname FROM user_info";
+
+            try (Connection conn = DBConnection.getConnection();
+                 PreparedStatement pstmt = conn.prepareStatement(sql);
+                 ResultSet rs = pstmt.executeQuery()) {
+
+                while (rs.next()) {
+                    nicknames.add(rs.getString("nickname"));
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this, "DB에서 유저 목록을 가져오는 중 오류가 발생했습니다.", "오류", JOptionPane.ERROR_MESSAGE);
+                return; // 오류 발생 시 실행 중단
+            }
+
+            // 로비 화면 생성 및 초기화
+            JFrame lobbyFrame = new JFrame("Lobby");
+            lobbyFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            lobbyFrame.setSize(900, 600);
+
+            // 로그인된 유저의 닉네임 가져오기
+            String loggedInUser = Login.getLoggedInUserId();
+            if (loggedInUser == null || loggedInUser.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "로그인이 필요합니다.", "오류", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            String nickname = DBConnection.getNickname(); // 닉네임 가져오기
+            if (nickname == null || nickname.trim().isEmpty()) {
+                nickname = "Unknown"; // 닉네임이 없을 경우 기본값 설정
+            }
+
+            // Lobby 생성
+            Lobby lobby = new Lobby(nickname);
+            lobby.updateUserList(nicknames.toArray(new String[0])); // DB에서 가져온 닉네임 리스트 설정
+            lobbyFrame.add(lobby.mainPanel);
+
+            // 로비 화면 표시
+            lobbyFrame.setVisible(true);
+
+            // 현재 창 닫기
+            dispose();
+        });
+        mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
+        mainPanel.add(startButton);
+
+        // 개인 설정 버튼
+        JButton settingsButton = new JButton("개인 설정");
+        settingsButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        settingsButton.setMaximumSize(new Dimension(100, 30));
+        settingsButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // 로그인된 사용자 ID를 사용해 EditMember 화면을 연다
+                loggedInUserId = Login.getLoggedInUserId();
+                if (loggedInUserId != null) {
+                    new EditMember(loggedInUserId);  // EditMember 화면을 연다 (로그인된 사용자 정보가 사용됨)
+                } else {
+                    JOptionPane.showMessageDialog(null, "로그인된 사용자가 없습니다.", "오류", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
+        mainPanel.add(settingsButton);
+
+        // 로그아웃 버튼
+        JButton logoutButton = new JButton("로그아웃");
+        logoutButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        logoutButton.setMaximumSize(new Dimension(100, 30));
+        logoutButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // 로그아웃 후 로그인 화면으로 전환
+                getContentPane().removeAll(); // 기존 화면 제거
+                revalidate();  // 레이아웃을 다시 계산
+                repaint();  // 화면을 다시 그리기
+                showLoginScreen();  // 로그인 화면 다시 표시
+            }
+        });
+        mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
+        mainPanel.add(logoutButton);
+
+        // 종료 버튼
+        JButton exitButton = new JButton("종료");
+        exitButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        exitButton.setMaximumSize(new Dimension(100, 30));
+        exitButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // 프로그램 종료
+                System.exit(0);
+            }
+        });
+        mainPanel.add(Box.createVerticalStrut(20)); // 여백 추가
+        mainPanel.add(exitButton);
+
+        // 날씨 정보 표시 영역 (왼쪽 아래에 배치)
+        weatherTextArea = new JTextArea(5, 20); // 크기를 줄임 (5행, 20열)
+        weatherTextArea.setEditable(false);
+        weatherTextArea.setOpaque(false);  // 배경을 투명하게 설정
+        weatherTextArea.setBackground(new Color(0, 0, 0, 0));  // 투명한 배경색 설정
+        weatherTextArea.setForeground(Color.BLACK);  // 글자 색을 검정으로 설정
+
+        // 날씨 출력 창의 크기 조정
+        JScrollPane scrollPane = new JScrollPane(weatherTextArea);
+        scrollPane.setPreferredSize(new Dimension(300, 100)); // 날씨 출력 영역 크기 설정
+        scrollPane.setOpaque(false);  // 스크롤 창 자체도 투명하게 설정
+        scrollPane.getViewport().setOpaque(false);  // 뷰포트도 투명하게 설정
+
+        // 날씨 정보를 왼쪽 아래(SOUTH)에 배치
+        JPanel weatherPanel = new JPanel();
+        weatherPanel.setLayout(new FlowLayout(FlowLayout.LEFT)); // 왼쪽 정렬
+        weatherPanel.setOpaque(false);  // 날씨 패널 자체도 투명하게 설정
+        weatherPanel.add(scrollPane);
+
+        mainPanel.add(weatherPanel, BorderLayout.SOUTH); // 아래쪽(SOUTH)에 배치
+
+        // 패널을 프레임에 추가
+        getContentPane().add(mainPanel);
+        revalidate();
+        repaint();
+        
+        fetchWeatherData();
+    }
+
+    public void showAdminScreen() { // 관리자 화면
         getContentPane().removeAll(); // 기존 화면 제거
         mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS)); // Y축으로 구성 요소 배치
@@ -507,6 +655,25 @@ public class GameStartScreen extends JFrame {
     
     public JPanel mainPanel() {
         return this.mainPanel;
+    }
+    
+    // 사용자 역할 가져오기
+    private String getUserRole(String userId) {
+        String role = null;
+        try (Connection conn = dbConnection.getConnection()) {
+            String query = "SELECT role FROM user_info WHERE id = ?";
+            PreparedStatement pstmt = conn.prepareStatement(query);
+            pstmt.setString(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                role = rs.getString("role");
+            }
+            rs.close();
+            pstmt.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return role;
     }
 
     public static void main(String[] args) {

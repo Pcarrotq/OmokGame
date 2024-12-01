@@ -25,6 +25,10 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.*;
 import java.net.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 
 import javax.swing.*;
@@ -279,8 +283,19 @@ public class Lobby extends JFrame {
             // GameStartScreen 인스턴스를 생성
             GameStartScreen mainFrame = new GameStartScreen();
 
-            // showAdminScreen 호출로 Admin Screen 표시
-            mainFrame.showAdminScreen();
+            // 로그인된 사용자 ID 가져오기
+            String loggedInUserId = Login.getLoggedInUserId();
+            if (loggedInUserId != null) {
+                String role = getUserRole(loggedInUserId); // 사용자의 역할 가져오기
+                if ("ADMIN".equals(role)) {
+                    mainFrame.showAdminScreen(); // 관리자 화면으로 전환
+                } else {
+                    mainFrame.showUserScreen(); // 일반 사용자 화면으로 전환
+                }
+            } else {
+                JOptionPane.showMessageDialog(frame, "로그인된 사용자가 없습니다.", "오류", JOptionPane.ERROR_MESSAGE);
+                mainFrame.showLoginScreen(); // 로그인 화면으로 전환
+            }
 
             // GameStartScreen 창 표시
             mainFrame.setVisible(true);
@@ -383,6 +398,24 @@ public class Lobby extends JFrame {
         // 메인 패널 구성
         mainPanel.add(topPanel, BorderLayout.CENTER);
         mainPanel.add(bottomPanel, BorderLayout.SOUTH);
+	}
+	
+	private String getUserRole(String userId) {
+	    String role = null;
+	    try (Connection conn = dbConnection.getConnection()) {
+	        String query = "SELECT role FROM user_info WHERE id = ?";
+	        PreparedStatement pstmt = conn.prepareStatement(query);
+	        pstmt.setString(1, userId);
+	        ResultSet rs = pstmt.executeQuery();
+	        if (rs.next()) {
+	            role = rs.getString("role");
+	        }
+	        rs.close();
+	        pstmt.close();
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+	    return role;
 	}
 	
 	private void sendMessage() {
