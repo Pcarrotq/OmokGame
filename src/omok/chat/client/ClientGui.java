@@ -30,7 +30,7 @@ public class ClientGui extends JFrame {
 
         setTitle(username + "의 Chatting");
         setBounds(1200, 250, 405, 605);
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setResizable(false);
         setLayout(null);
 
@@ -42,6 +42,22 @@ public class ClientGui extends JFrame {
 
         // 메시지 수신 스레드 시작
         startListening();
+        
+        // 창 닫힘 이벤트 처리
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                // 소켓 연결 해제
+                if (socket != null && !socket.isClosed()) {
+                    try {
+                        out.println("[DISCONNECT]" + username); // 서버에 종료 알림
+                        socket.close();
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                    }
+                }
+            }
+        });
 
         setVisible(true);
     }
@@ -60,10 +76,11 @@ public class ClientGui extends JFrame {
 
         fileButton.addActionListener(e -> {
             JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY); // 파일만 선택
             int returnValue = fileChooser.showOpenDialog(this);
             if (returnValue == JFileChooser.APPROVE_OPTION) {
                 File file = fileChooser.getSelectedFile();
-                textArea.setText(file.toString());
+                sendFile(file); // 파일 전송 메서드 호출
             }
         });
         
@@ -261,6 +278,69 @@ public class ClientGui extends JFrame {
     public void updateOtherBubbleColor(Color color) {
         if (color != null) {
             otherBubbleColor = color;
+        }
+    }
+    
+    private void sendFile(File file) {
+        if (file == null || !file.exists()) {
+            JOptionPane.showMessageDialog(this, "유효한 파일을 선택하세요.", "오류", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try (Socket fileSocket = new Socket(socket.getInetAddress(), 5421); // 별도 파일 전송 소켓
+             OutputStream os = fileSocket.getOutputStream();
+             BufferedOutputStream bos = new BufferedOutputStream(os);
+             FileInputStream fis = new FileInputStream(file)) {
+
+            // 파일 메타데이터 전송
+            DataOutputStream dos = new DataOutputStream(bos);
+            dos.writeUTF(file.getName());
+            dos.writeLong(file.length());
+
+            // 파일 데이터 전송
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = fis.read(buffer)) != -1) {
+                bos.write(buffer, 0, bytesRead);
+            }
+            bos.flush();
+
+            displayFileMessage(username, file.getName()); // UI에 전송 메시지 표시
+        } catch (IOException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "파일 전송 중 오류가 발생했습니다.", "오류", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    private void displayImage(File imageFile) {
+        try {
+            ImageIcon icon = new ImageIcon(imageFile.getAbsolutePath());
+            JLabel label = new JLabel(icon);
+
+            // 이미지 크기 조정 (너무 큰 경우를 대비)
+            if (icon.getIconWidth() > 300 || icon.getIconHeight() > 300) {
+                Image scaledImage = icon.getImage().getScaledInstance(300, 300, Image.SCALE_SMOOTH);
+                label.setIcon(new ImageIcon(scaledImage));
+            }
+
+            document = jtp.getStyledDocument();
+            jtp.setCaretPosition(document.getLength());
+            jtp.insertComponent(label); // 이미지 컴포넌트 삽입
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
+    private void displayFileMessage(String sender, String fileName) {
+        try {
+            document = jtp.getStyledDocument();
+            SimpleAttributeSet attr = new SimpleAttributeSet();
+            StyleConstants.setAlignment(attr, StyleConstants.ALIGN_LEFT); // 좌측 정렬
+            StyleConstants.setForeground(attr, Color.BLUE); // 파일 메시지는 파란색으로 표시
+            document.setParagraphAttributes(document.getLength(), 1, attr, false);
+            document.insertString(document.getLength(), "[" + sender + "] 파일 전송: " + fileName + "\n", attr);
+        } catch (BadLocationException e) {
+            e.printStackTrace();
         }
     }
 }
