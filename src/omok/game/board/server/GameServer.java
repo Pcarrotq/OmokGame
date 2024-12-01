@@ -7,13 +7,14 @@ import java.util.*;
 import omok.game.board.frame.BoardMap;
 
 public class GameServer {
-    private static final int PORT = 8080;
+    private static final int PORT = 8081;
     private BoardMap map = new BoardMap();
     private boolean blackTurn = true;
     private List<ClientHandler> clients = new ArrayList<>();
     private Map<String, Boolean> roomTurns = new HashMap<>(); // 방별 턴 관리
     private Map<String, List<ClientHandler>> roomClients = new HashMap<>(); // 방별 클라이언트 관리
     private Map<String, BoardMap> roomMaps = new HashMap<>();
+    private Map<String, Object> roomLocks = new HashMap<>();
 
     public static void main(String[] args) {
         new GameServer().start();
@@ -34,21 +35,39 @@ public class GameServer {
         }
     }
 
-    public synchronized boolean placeStone(int x, int y, String roomName) {
-        BoardMap map = roomMaps.get(roomName);
-        if (map == null || map.getXY(y, x) != 0) return false;
+    public synchronized boolean placeStone(int x, int y, String roomName, ClientHandler client) {
+        Object roomLock = roomLocks.computeIfAbsent(roomName, k -> new Object());
+        final short BLACK = 1;
+        final short WHITE = 2;
+        synchronized (roomLock) {
+            // 현재 턴 확인
+            boolean isBlackTurn = roomTurns.getOrDefault(roomName, true);
+            
+            // 클라이언트의 턴인지 확인
+            if (client.isBlackPlayer() != isBlackTurn) {
+                client.sendMessage("INVALID_TURN");
+                return false;
+            }
 
-        map.setMap(y, x);
-        boolean isWin = map.winCheck(x, y);
+            BoardMap map = roomMaps.get(roomName);
+            if (map == null || map.getXY(y, x) != 0) {
+                client.sendMessage("PLACE_FAIL");
+                return false;
+            }
 
-        if (isWin) {
-            broadcastToRoom(roomName, "WIN " + (isBlackTurn(roomName) ? "BLACK" : "WHITE"));
-            resetRoom(roomName);
-        } else {
-            toggleTurn(roomName);
-            broadcastToRoom(roomName, "UPDATE " + x + " " + y);
+            // 돌 배치 및 승리 체크
+            map.setMap(y, x, isBlackTurn ? BLACK : WHITE);
+            boolean isWin = map.winCheck(x, y);
+
+            if (isWin) {
+                broadcastToRoom(roomName, "WIN " + (isBlackTurn ? "BLACK" : "WHITE"));
+                resetRoom(roomName);
+            } else {
+                toggleTurn(roomName);
+                broadcastToRoom(roomName, "UPDATE " + x + " " + y);
+            }
+            return true;
         }
-        return true;
     }
     public synchronized void handleTimeout(String roomName) {
         boolean isBlackTurn = roomTurns.getOrDefault(roomName, true);
@@ -96,8 +115,9 @@ public class GameServer {
         }
         List<ClientHandler> clientsInRoom = roomClients.get(roomName);
         if (clientsInRoom.size() < 2) { // 최대 2명까지만 허용
+            client.setBlackPlayer(clientsInRoom.isEmpty()); // 첫 번째 클라이언트는 흑, 두 번째는 백
             clientsInRoom.add(client);
-            client.setRoomName(roomName); // 클라이언트에 방 이름 설정
+            client.setRoomName(roomName);
             return true;
         }
         return false;
@@ -139,6 +159,7 @@ public class GameServer {
         private Socket socket;
         private String roomName;
         private PrintWriter out;
+        private boolean isBlackPlayer;
 
         public ClientHandler(GameServer server, Socket socket) {
             this.server = server;
@@ -151,6 +172,14 @@ public class GameServer {
         
         public void setRoomName(String roomName) {
             this.roomName = roomName;
+        }
+        
+        public boolean isBlackPlayer() {
+            return isBlackPlayer;
+        }
+
+        public void setBlackPlayer(boolean isBlackPlayer) {
+            this.isBlackPlayer = isBlackPlayer;
         }
 
         @Override
@@ -184,7 +213,7 @@ public class GameServer {
                         int x = Integer.parseInt(parts[1]);
                         int y = Integer.parseInt(parts[2]);
 
-                        if (server.placeStone(x, y, roomName)) {
+                        if (server.placeStone(x, y, roomName, this)) {
                             sendMessage("PLACE_SUCCESS " + x + " " + y);
                         } else {
                             sendMessage("PLACE_FAIL " + x + " " + y);

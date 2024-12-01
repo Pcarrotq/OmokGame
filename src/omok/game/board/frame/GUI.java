@@ -198,7 +198,7 @@ public class GUI extends JPanel {
             String message = txtInput.getText().trim();
             if (!message.isEmpty()) {
                 // 닉네임 가져오기
-                String nickname = "닉네임"; // DB 또는 로그인 정보에서 닉네임을 가져옵니다.
+                String nickname = "닉네임"; // DB 또는 로그인 정보에서 닉네임을 가져옵니��.
 
                 // 관전 모드에 따라 메시지 스타일 다르게 설정
                 sendChatMessage(nickname, message);
@@ -236,47 +236,43 @@ public class GUI extends JPanel {
 
         d.addMouseListener(new MouseAdapter() {
             @Override
-            public void mousePressed(MouseEvent arg0) {
-            	if (!isGameStarted) return; // 게임이 시작되지 않았으면 무시
-            	
+            public void mousePressed(MouseEvent e) {
+                if (!isGameStarted) return; // 게임이 시작되지 않았으면 무시
+
                 int boardSize = Math.min(d.getWidth(), d.getHeight()) - 20;
                 int cellSize = boardSize / map.getSize();
 
-                int x = (arg0.getX() - (d.getWidth() - boardSize) / 2) / cellSize;
-                int y = (arg0.getY() - (d.getHeight() - boardSize) / 2) / cellSize;
+                // 클릭한 좌표 계산
+                int x = (e.getX() - (d.getWidth() - boardSize) / 2) / cellSize;
+                int y = (e.getY() - (d.getHeight() - boardSize) / 2) / cellSize;
 
-                // 돌이 이미 있거나 좌표가 유효하지 않은 경우 무시
+                // 유효하지 않은 클릭 무시
                 if (x < 0 || x >= map.getSize() || y < 0 || y >= map.getSize() ||
                     map.getXY(y, x) == map.getBlack() || map.getXY(y, x) == map.getWhite()) {
                     return;
                 }
 
-                // 맵에 돌 배치
+                // 돌 배치
                 map.setMap(y, x);
-
-                // 턴 변경
                 map.changeCheck();
-
-                // 타이머 리셋
-                turnTimer.stop();
-                startTurnTimer();
-
-                // 돌 출력 및 승리 조건 확인
                 d.repaint();
+
+                // 좌표 출력
+                displayMessage("돌을 놓은 좌표: (" + x + ", " + y + ")");
+
+                // 서버에 돌 배치 요청
+                out.println("PLACE " + x + " " + y);
+
+                // 차례 업데이트
                 SwingUtilities.invokeLater(() -> {
                     if (map.winCheck(x, y)) {
                         JOptionPane.showMessageDialog(null, (map.getCheck() ? "백" : "흑") + " 승리!", "게임 종료", JOptionPane.INFORMATION_MESSAGE);
-                        map.reset(); // 게임 재시작
-                        d.repaint(); // 보드 초기화
+                        map.reset();
+                        d.repaint();
                     } else {
-                        // 차례 변경 메시지 업데이트
-                        String currentTurn = map.getCheck() ? "흑돌의 차례입니다." : "백돌의 차례입니다.";
-                        turnDisplay.setText(currentTurn);
+                        turnDisplay.setText(map.getCheck() ? "흑돌의 차례입니다." : "백돌의 차례입니다.");
                     }
                 });
-                
-                // 서버에 돌 배치 요청
-                out.println("PLACE " + x + " " + y);
             }
         });
     }
@@ -454,18 +450,23 @@ public class GUI extends JPanel {
                 case "UPDATE":
                     int x = Integer.parseInt(parts[1]);
                     int y = Integer.parseInt(parts[2]);
-                    map.setMap(y, x);
+                    map.setMap(y, x);  // 서버로부터 받은 좌표로 돌 배치
                     d.repaint();
+                    changeTurn();  // 턴 변경
+                    break;
+
+                case "PLACE_FAIL":
+                    JOptionPane.showMessageDialog(this, "유효하지 않은 위치입니다.");
                     break;
 
                 case "WIN":
                     String winner = parts[1].equals("BLACK") ? "흑돌" : "백돌";
                     JOptionPane.showMessageDialog(this, winner + " 승리!", "게임 종료", JOptionPane.INFORMATION_MESSAGE);
-                    resetGame(); // 게임 초기화
+                    resetGame();
                     break;
 
-                case "TURN_TIMEOUT":
-                    // 타이머 초과는 더 이상 처리하지 않음, 승리 로직으로 대체됨.
+                case "INVALID_TURN":
+                    JOptionPane.showMessageDialog(this, "당신의 턴이 아닙니다.");
                     break;
             }
         });
@@ -589,23 +590,23 @@ public class GUI extends JPanel {
     private void displayMessage(String message) {
         try {
             if (txtDisplay == null) {
-                txtDisplay = getTxtDisplay(); // txtDisplay가 null일 경우 초기화
+                txtDisplay = getTxtDisplay(); // txtDisplay 초기화
             }
 
             StyledDocument doc = txtDisplay.getStyledDocument();
             SimpleAttributeSet style = new SimpleAttributeSet();
 
-            // "스피커" 메시지는 빨간색으로 출력
             if (message.contains("[스피커]")) {
                 StyleConstants.setForeground(style, Color.RED);
                 StyleConstants.setBold(style, true);
+            } else if (message.startsWith("돌을 놓은 좌표:")) {
+                StyleConstants.setForeground(style, Color.GREEN); // 좌표 메시지 파란색
             } else {
-                // 일반 메시지는 검은색으로 출력
-                StyleConstants.setForeground(style, Color.BLACK);
+                StyleConstants.setForeground(style, Color.BLACK); // 기본 메시지
             }
 
             doc.insertString(doc.getLength(), message + "\n", style);
-            txtDisplay.setCaretPosition(doc.getLength()); // 스크롤을 맨 아래로 이동
+            txtDisplay.setCaretPosition(doc.getLength()); // 최신 메시지로 스크롤 이동
         } catch (BadLocationException e) {
             e.printStackTrace();
         }

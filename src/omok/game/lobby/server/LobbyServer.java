@@ -88,7 +88,8 @@ public class LobbyServer {
 	
 	public synchronized void addRoom(String roomInfo) {
 	    roomList.add(roomInfo);
-	    broadcastRoomList();
+	    System.out.println("방 추가됨: " + roomInfo);
+	    broadcastRoomList(); // 방 리스트 브로드캐스트
 	}
 
 	public synchronized void removeRoom(String roomName) {
@@ -98,11 +99,14 @@ public class LobbyServer {
 	}
 
 	public synchronized void broadcastRoomList() {
-	    List<String> trimmedRoomList = new ArrayList<>();
+	    List<String> numberedRoomList = new ArrayList<>();
+	    int number = 1;
 	    for (String room : roomList) {
-	        trimmedRoomList.add(room.trim()); // 공백 제거
+	        // 번호를 각 방 정보 앞에 추가
+	        numberedRoomList.add(number + "|" + room.trim());
+	        number++;
 	    }
-	    String roomListMessage = "[ROOM_LIST] " + String.join("\n", roomList);
+	    String roomListMessage = "[ROOM_LIST] " + String.join("\n", numberedRoomList);
 	    System.out.println("브로드캐스트 방 리스트: " + roomListMessage);
 	    broadCasting(roomListMessage);
 	}

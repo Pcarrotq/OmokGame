@@ -60,23 +60,44 @@ public class ServerSocketThread extends Thread {
 	        String receivedMessage;
 	        while ((receivedMessage = in.readLine()) != null) {
 	            receivedMessage = receivedMessage.trim();
+	            System.out.println("클라이언트로부터 메시지 수신: " + receivedMessage);
 
 	            // 닉네임 설정 처리
 	            if (receivedMessage.startsWith("[닉네임]")) {
-	                name = receivedMessage.substring(5).trim(); // 닉네임 저장
+	                name = receivedMessage.substring(5).trim();
+	                if (name.isEmpty() || name.contains("|") || name.length() > 20) { // 닉네임 유효성 검사
+	                    System.out.println("유효하지 않은 닉네임입니다. 연결 종료: " + name);
+	                    sendMessage("[INVALID_NICKNAME]");
+	                    socket.close();
+	                    return;
+	                }
 	                System.out.println("클라이언트 닉네임 설정됨: " + name);
-	                continue; // 다른 메시지 처리를 건너뜀
+	                continue;
 	            }
-
+	            
+	            // 방 생성 처리
 	            if (receivedMessage.startsWith("[CREATE_ROOM]")) {
-	            	String roomName = receivedMessage.substring(13).trim(); // 방 이름 추출, 공백 제거
-	                String roomInfo = "0|" + roomName + "|" + name + "|1/2|WAITING"; // 방 정보 생성
-	                server.addRoom(roomInfo); // 서버에 방 추가 및 브로드캐스트
-	            } else if (receivedMessage.startsWith("[REMOVE_ROOM]")) {
-	                String roomName = receivedMessage.substring(13).trim(); // 방 이름 추출
-	                server.removeRoom(roomName); // 서버에서 방 삭제
+	                String roomName = receivedMessage.substring(13).trim();
+	                if (roomName.isEmpty() || roomName.contains("|") || roomName.length() > 30) {
+	                    System.out.println("유효하지 않은 방 이름: " + roomName);
+	                    sendMessage("[INVALID_ROOM_NAME]");
+	                    return;
+	                }
+	                if (name == null || name.isEmpty()) {
+	                    name = DBConnection.getNickname();
+	                }
+	                String roomInfo = String.join("|", "0", roomName, name, "1/2", "WAITING");
+	                server.addRoom(roomInfo);
+	                server.broadcastRoomList();
+	                continue;
+	            }
+	            if (receivedMessage.startsWith("[REMOVE_ROOM]")) {
+	                String roomName = receivedMessage.substring(13).trim();
+	                server.removeRoom(roomName);
 	                System.out.println("방 삭제 요청 처리됨: " + roomName);
-	            } else if (receivedMessage.startsWith("[JOIN_ROOM]")) {
+	                continue;
+	            }
+	            if (receivedMessage.startsWith("[JOIN_ROOM]")) {
 	                String roomName = receivedMessage.substring(11).trim(); // 방 이름 추출 및 공백 제거
 	                synchronized (server) {
 	                    for (String room : server.getRoomList()) {
@@ -112,7 +133,16 @@ public class ServerSocketThread extends Thread {
 	                    // 방이 존재하지 않음
 	                    sendMessage("[JOIN_FAILURE]");
 	                }
-	            } else if (receivedMessage.startsWith("[START_GAME]")) {
+	                
+	                continue;
+	            }
+	            if (receivedMessage.startsWith("[ROOM_LIST]")) {
+	                // 클라이언트로 방 리스트 메시지를 전송
+	                String roomData = receivedMessage.length() > 12 ? receivedMessage.substring(12).trim() : "";
+	                server.broadcastRoomList();
+	                continue;
+	            }
+	            if (receivedMessage.startsWith("[START_GAME]")) {
 	                String roomName = receivedMessage.substring(12).trim();
 	                synchronized (server) {
 	                    for (String room : server.getRoomList()) {
@@ -126,10 +156,16 @@ public class ServerSocketThread extends Thread {
 	                    }
 	                    sendMessage("[START_GAME_FAILURE]");
 	                }
-	            } else {
+	                
+	                continue;
+	            }
+	            else {
 	                server.broadCasting(receivedMessage); // 일반 메시지 브로드캐스트
 	            }
 	        }
+	        
+            // 일반 메시지 브로드캐스트
+            server.broadCasting(receivedMessage);
 	    } catch (IOException e) {
 	        System.out.println("클라이언트 연결 종료: " + e.getMessage());
 	    } finally {

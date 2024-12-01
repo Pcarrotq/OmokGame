@@ -76,6 +76,7 @@ public class Lobby extends JFrame {
 	            startListening();
 
 	            // 서버에 닉네임 전송
+	            System.out.println("서버로 전송할 닉네임: " + nickname);
 	            out.println("[닉네임]" + nickname);
 	        } catch (IOException e) {
 	            e.printStackTrace();
@@ -130,35 +131,30 @@ public class Lobby extends JFrame {
 
             String roomName = JOptionPane.showInputDialog("방 이름을 입력하세요:");
             if (roomName != null && !roomName.trim().isEmpty()) {
-                // 캐릭터 선택 창 열기
-                new CharacterSelectionScreen(selectedCharacter -> {
-                    // 캐릭터 선택 후 게임 생성 및 입장
-                    SwingUtilities.invokeLater(() -> {
-                        out.println("[CREATE_ROOM] " + roomName); // 서버에 방 생성 요청 전송
+                SwingUtilities.invokeLater(() -> {
+                    out.println("[CREATE_ROOM] " + roomName); // 서버에 방 생성 요청 전송
 
-                        int newRoomNumber = table.getRowCount() + 1;
-                        tableModel.addRow(new Object[]{newRoomNumber, roomName, loggedInUser, "1/2", "대기 중"});
+                    int newRoomNumber = table.getRowCount() + 1;
+                    tableModel.addRow(new Object[]{newRoomNumber, roomName, loggedInUser, "1/2", "대기 중"});
 
-                        JFrame gameFrame = new JFrame("게임 방: " + roomName);
-                        gameFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-                        gameFrame.setSize(1500, 1000);
+                    JFrame gameFrame = new JFrame("게임 방: " + roomName);
+                    gameFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                    gameFrame.setSize(1500, 1000);
 
-                        GUI gameGui = new GUI(roomName, serverAddress, serverPort); // GUI 생성
-                        gameGui.setPlayer1Profile(selectedCharacter); // 선택된 캐릭터 설정
-                        gameFrame.add(gameGui);
+                    GUI gameGui = new GUI(roomName, serverAddress, serverPort); // GUI 생성
+                    gameFrame.add(gameGui);
 
-                        gameFrame.addWindowListener(new WindowAdapter() {
-                            @Override
-                            public void windowClosed(WindowEvent e) {
-                                removeRoomByTitle(roomName); // 방 삭제 호출
-                            }
-                        });
-
-                        gameFrame.setVisible(true);
-
-                        JOptionPane.showMessageDialog(frame, "새 게임 방이 생성되었습니다!", "생성 성공", JOptionPane.INFORMATION_MESSAGE);
+                    gameFrame.addWindowListener(new WindowAdapter() {
+                        @Override
+                        public void windowClosed(WindowEvent e) {
+                            removeRoomByTitle(roomName); // 방 삭제 호출
+                        }
                     });
-                }).setVisible(true);
+
+                    gameFrame.setVisible(true);
+
+                    JOptionPane.showMessageDialog(frame, "새 게임 방이 생성되었습니다!", "생성 성공", JOptionPane.INFORMATION_MESSAGE);
+                });
             } else {
                 JOptionPane.showMessageDialog(frame, "유효한 방 이름을 입력하세요.", "오류", JOptionPane.ERROR_MESSAGE);
             }
@@ -181,41 +177,41 @@ public class Lobby extends JFrame {
                 JOptionPane.showMessageDialog(frame, "게임이 이미 진행 중이거나 입장할 수 없는 방입니다.", "오류", JOptionPane.ERROR_MESSAGE);
                 return;
             }
+            
+            out.println("[JOIN_ROOM] " + roomName);
 
-            // 캐릭터 선택 창 열기
-            new CharacterSelectionScreen(selectedCharacter -> {
-                // 캐릭터 선택 후 게임 입장 요청
-                SwingUtilities.invokeLater(() -> {
-                    // 서버에 방 입장 요청 전송
-                    out.println("[JOIN_ROOM] " + roomName);
+            // 서버 응답 처리
+            new Thread(() -> {
+                try {
+                    String response = in.readLine().trim(); // 서버 응답 대기
+                    SwingUtilities.invokeLater(() -> {
+                        if ("[JOIN_SUCCESS]".equals(response)) {
+                            // 바로 게임 화면으로 이동
+                            JFrame gameFrame = new JFrame("게임 방: " + roomName);
+                            gameFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+                            gameFrame.setSize(1500, 1000);
 
-                    // 서버 응답 처리
-                    new Thread(() -> {
-                        try {
-                            String response = in.readLine().trim(); // 서버 응답 대기
-                            SwingUtilities.invokeLater(() -> {
-                                switch (response) {
-                                    case "[JOIN_SUCCESS]":
-                                        openGameRoomWithCharacter(roomName, selectedCharacter); // 선택된 캐릭터로 게임 방 열기
-                                        break;
-                                    case "[JOIN_FAILURE_FULL]":
-                                        JOptionPane.showMessageDialog(frame, "방이 가득 찼습니다.", "입장 실패", JOptionPane.ERROR_MESSAGE);
-                                        break;
-                                    case "[JOIN_FAILURE_STARTED]":
-                                        JOptionPane.showMessageDialog(frame, "게임이 이미 진행 중입니다.", "입장 실패", JOptionPane.ERROR_MESSAGE);
-                                        break;
-                                    default:
-                                        JOptionPane.showMessageDialog(frame, "방 입장에 실패했습니다. 다시 시도해주세요.", "입장 실패", JOptionPane.ERROR_MESSAGE);
-                                        break;
-                                }
-                            });
-                        } catch (IOException ex) {
-                            ex.printStackTrace();
-                            SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(frame, "서버와의 통신 오류가 발생했습니다.", "오류", JOptionPane.ERROR_MESSAGE));
+                            GUI gameGui = new GUI(roomName, serverAddress, serverPort); // GUI 생성
+                            gameFrame.add(gameGui);
+                            gameFrame.setVisible(true);
+
+                            JOptionPane.showMessageDialog(frame, roomName + " 방에 입장했습니다.", "입장 성공", JOptionPane.INFORMATION_MESSAGE);
+
+                            // 로비 창 닫기
+                            frame.dispose();
+                        } else if ("[JOIN_FAILURE_FULL]".equals(response)) {
+                            JOptionPane.showMessageDialog(frame, "방이 가득 찼습니다.", "입장 실패", JOptionPane.ERROR_MESSAGE);
+                        } else if ("[JOIN_FAILURE_STARTED]".equals(response)) {
+                            JOptionPane.showMessageDialog(frame, "게임이 이미 진행 중입니다.", "입장 실패", JOptionPane.ERROR_MESSAGE);
+                        } else {
+                            JOptionPane.showMessageDialog(frame, "방 입장에 실패했습니다. 다시 시도해주세요.", "입장 실패", JOptionPane.ERROR_MESSAGE);
                         }
-                    }).start();
-                });
-            }).setVisible(true);
+                    });
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                    SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(frame, "서버와의 통신 오류가 발생했습니다.", "오류", JOptionPane.ERROR_MESSAGE));
+                }
+            }).start();
         });
         buttonPanel.add(joinGameButton);
         
@@ -619,22 +615,55 @@ public class Lobby extends JFrame {
     }
     
     private void updateRoomList(String roomData) {
-        System.out.println("서버로부터 받은 방 리스트: " + roomData.trim()); // 공백 제거
+        System.out.println("서버로부터 받은 방 리스트: " + roomData.trim());
 
         SwingUtilities.invokeLater(() -> {
             tableModel.setRowCount(0); // 기존 테이블 데이터 초기화
 
             if (!roomData.isEmpty()) {
                 String[] rooms = roomData.split("\n");
+                int number = 1; // 방 번호 초기화
                 for (String room : rooms) {
                     String[] details = room.split("\\|");
                     if (details.length == 5) { // 유효한 데이터만 추가
                         for (int i = 0; i < details.length; i++) {
                             details[i] = details[i].trim(); // 공백 제거
                         }
-                        tableModel.addRow(details);
+                        // 번호를 추가하여 테이블에 추가
+                        tableModel.addRow(new Object[] {
+                            number++, // 방 번호
+                            details[1], // 방 이름
+                            details[2], // 방 생성자(닉네임)
+                            details[3], // 현재 인원 / 최대 인원
+                            details[4]  // 상태 (WAITING, IN_PROGRESS 등)
+                        });
                     }
                 }
+            }
+        });
+    }
+
+    
+    public void updateRoomTable() {
+        SwingUtilities.invokeLater(() -> {
+            tableModel.setRowCount(0); // 기존 테이블 초기화
+
+            for (String room : roomList) {
+                String[] details = room.split("\\|");
+                if (details.length == 5) { // 유효한 데이터만 추가
+                    tableModel.addRow(details);
+                }
+            }
+        });
+    }
+    
+    private void handleServerMessage(String message) {
+        SwingUtilities.invokeLater(() -> {
+            if (message.startsWith("[ROOM_LIST]")) {
+                String roomData = message.length() > 12 ? message.substring(12).trim() : ""; // 메시지에서 방 리스트 추출
+                updateRoomList(roomData); // 방 리스트 업데이트
+            } else {
+                displayMessage(message); // 일반 메시지 처리
             }
         });
     }
