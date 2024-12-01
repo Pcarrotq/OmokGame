@@ -8,6 +8,8 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
 
+import omok.member.db.DBConnection;
+
 
 public class ServerSocketThread extends Thread {
 	Socket socket;
@@ -35,8 +37,13 @@ public class ServerSocketThread extends Thread {
 	        in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 	        out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())), true);
 
-	        sendMessage("[Server] 대화자 이름을 넣으세요");
-	        name = in.readLine();
+	        String initialMessage = in.readLine();
+	        if (initialMessage != null && initialMessage.startsWith("[LOGIN]")) {
+	            name = initialMessage.substring(7).trim(); // "[LOGIN]" 뒤의 사용자 이름 저장
+	        } else {
+	            name = "Unknown"; // 닉네임이 전달되지 않았을 경우 기본값 설정
+	        }
+	        System.out.println("클라이언트 닉네임: " + name);
 	        server.broadCasting("[System] [" + name + "]님이 입장하셨습니다.");
 
 	        String str_in;

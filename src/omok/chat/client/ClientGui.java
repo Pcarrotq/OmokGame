@@ -72,7 +72,7 @@ public class ClientGui extends JFrame {
             socket = new Socket(ip, port);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())), true);
-            out.println(username); // 서버에 사용자 이름 전송
+            out.println("[LOGIN]" + username); // 서버에 사용자 이름 전송
         } catch (Exception e) {
             JOptionPane.showMessageDialog(null, "서버 연결에 실패했습니다.", "Error", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();

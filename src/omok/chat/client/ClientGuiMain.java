@@ -18,7 +18,7 @@ public class ClientGuiMain {
             String username = scanner.nextLine();
 
             // 클라이언트 GUI 실행
-            new ClientGui(ip, 5420, username);
+            // new ClientGui(ip, 5420, username);
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }

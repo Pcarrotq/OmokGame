@@ -9,6 +9,7 @@ import javax.swing.text.StyledDocument;
 
 import omok.additional.CharacterSelectionScreen;
 import omok.chat.ChatInventory;
+import omok.chat.client.ClientGui;
 import omok.game.board.frame.GUI;
 import omok.game.character.ConectUserInfo;
 import omok.game.character.PlayerInfo;
@@ -350,15 +351,34 @@ public class Lobby extends JFrame {
         searchPanel.add(searchField, BorderLayout.CENTER);
         searchPanel.add(searchButton, BorderLayout.EAST);
 
-        // "접속 유저" 탭
-        userModel = new DefaultTableModel(new String[]{"접속 유저"}, 0);
+        // "유저" 탭
+        userModel = new DefaultTableModel(new String[]{"유저"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // 모든 셀 수정 불가
+            }
+        };
+
         JTable userTable = new JTable(userModel);
         userTable.setRowHeight(30);
-        
-        userTable.getColumnModel().getColumn(0).setPreferredWidth(180); // "접속 유저"
+        userTable.getColumnModel().getColumn(0).setPreferredWidth(180); // "유저" 열 너비 설정
+
+        // 더블 클릭 이벤트 리스너
+        userTable.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2) { // 더블 클릭 이벤트
+                    int selectedRow = userTable.getSelectedRow();
+                    if (selectedRow != -1) {
+                        String selectedUser = (String) userModel.getValueAt(selectedRow, 0); // 선택된 유저 이름 가져오기
+                        openChatWindow(selectedUser); // 대화 창 열기
+                    }
+                }
+            }
+        });
         
         JScrollPane userScrollPane = new JScrollPane(userTable);
-        tabbedPane.addTab("접속 유저", userScrollPane);
+        tabbedPane.addTab("유저", userScrollPane);
 
         // "랭킹" 탭
         DefaultTableModel rankModel = new DefaultTableModel(new String[]{"순위", "닉네임", "점수"}, 0);
@@ -538,6 +558,19 @@ public class Lobby extends JFrame {
                     break;
                 }
             }
+        });
+    }
+    
+    private void openChatWindow(String targetUser) {
+        String loggedInUser = Login.getLoggedInUserId(); // 로그인된 사용자 ID
+        if (loggedInUser == null || loggedInUser.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(frame, "로그인 후 이용해주세요.", "오류", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        SwingUtilities.invokeLater(() -> {
+            // ClientGui를 생성하고 서버에 targetUser 정보 전송
+            ClientGui clientGui = new ClientGui("localhost", 5420, loggedInUser);
         });
     }
     
