@@ -19,16 +19,26 @@ public class GUI extends JPanel {
     private Container c;
     private BoardMap map;
     private DrawBoard d;
+    
     private JTextPane txtDisplay;
     private JTextField txtInput;
     private JButton btnSend;
     private JButton btnExit, startButton;
+    
     private JLabel player1Profile, player1Label, player2Profile, player2Label;
     private JPanel player1Panel, player2Panel;
+    
     private JLabel turnDisplay;
+    
     private boolean isSpectatorMode = false; // 관전모드
     private boolean isGameStarted = false; // 게임 시작 여부 확인
+    private String currentTurn = "BLACK"; // 현재 차례: BLACK or WHITE
+    
     private String roomCreator;
+    
+    private String stoneColor; // 돌의 색상
+    private String player1; // 흑돌
+    private String player2; // 백돌
     
     private Socket socket;
     private PrintWriter out;
@@ -48,7 +58,9 @@ public class GUI extends JPanel {
                 try {
                     String message;
                     while ((message = in.readLine()) != null) {
-                        handleServerMessage(message);
+                        if (message.startsWith("[CHAT]")) {
+                            appendChatMessage(message.substring(6), false); // "[CHAT] " 이후 메시지 표시
+                        }
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -174,17 +186,8 @@ public class GUI extends JPanel {
         JPanel inputPanel = new JPanel(new GridBagLayout());
         txtInput = getTxtInput();
         btnSend = new JButton("전송");
-        btnSend.addActionListener(e -> {
-            String message = txtInput.getText().trim();
-            if (!message.isEmpty()) {
-                // 닉네임 가져오기
-                String nickname = "닉네임"; // DB 또는 로그인 정보에서 닉네임을 가져옵니��.
-
-                // 관전 모드에 따라 메시지 스타일 다르게 설정
-                sendChatMessage(nickname, message);
-                txtInput.setText("");
-            }
-        });
+        txtInput.addActionListener(e -> sendChatMessage());
+        btnSend.addActionListener(e -> sendChatMessage());
         
         // 입력 필드 레이아웃
         gbc.gridx = 0;
@@ -255,6 +258,52 @@ public class GUI extends JPanel {
                 });
             }
         });
+    }
+    
+    private void sendChatMessage() {
+        String message = txtInput.getText().trim();
+        if (!message.isEmpty()) {
+            String formattedMessage = isSpectatorMode
+                ? "[관전] " + Login.getLoggedInUserId() + ": " + message
+                : Login.getLoggedInUserId() + ": " + message;
+
+            // 서버로 전송할 메시지에 [CHAT] 태그
+            out.println("[CHAT] " + formattedMessage);
+
+            // UI에 즉시 표시 (서버로부터 다시 수신되는 경우 중복 방지)
+            appendChatMessage(formattedMessage, isSpectatorMode);
+
+            // 입력 필드 초기화
+            txtInput.setText("");
+        }
+    }
+
+    private void appendChatMessage(String message, boolean isSpectator) {
+        try {
+            StyledDocument doc = txtDisplay.getStyledDocument();
+            SimpleAttributeSet style = new SimpleAttributeSet();
+
+            if (isSpectator) {
+                StyleConstants.setForeground(style, Color.BLUE);
+            } else {
+                StyleConstants.setForeground(style, Color.BLACK);
+            }
+
+            // 닉네임만 추출하여 스타일 적용
+            int colonIndex = message.indexOf(":");
+            if (colonIndex != -1) {
+                String nickname = message.substring(0, colonIndex).trim();
+                doc.insertString(doc.getLength(), nickname + ": ", style);
+                StyleConstants.setBold(style, false);
+                doc.insertString(doc.getLength(), message.substring(colonIndex + 1).trim() + "\n", style);
+            } else {
+                doc.insertString(doc.getLength(), message + "\n", style);
+            }
+
+            txtDisplay.setCaretPosition(doc.getLength());
+        } catch (BadLocationException e) {
+            e.printStackTrace();
+        }
     }
     
     public void setSpectatorMode(boolean spectatorMode) {
@@ -414,6 +463,7 @@ public class GUI extends JPanel {
                     map.setMap(y, x);  // 서버로부터 받은 좌표로 돌 배치
                     d.repaint();
                     changeTurn();  // 턴 변경
+                    System.out.println("Updated map and repainted board");
                     break;
 
                 case "PLACE_FAIL":
@@ -430,6 +480,8 @@ public class GUI extends JPanel {
                     JOptionPane.showMessageDialog(this, "당신의 턴이 아닙니다.");
                     break;
             }
+            
+            System.out.println("Received message from server: " + message);
         });
     }
     private void resetGame() {
@@ -520,7 +572,22 @@ public class GUI extends JPanel {
                 try {
                     String message;
                     while ((message = in.readLine()) != null) {
-                        handleServerMessage(message);
+                        if (message.startsWith("[CHAT]")) {
+                            // [CHAT] 태그가 있는 메시지만 처리
+                            String chatMessage = message.substring(6).trim(); // "[CHAT] " 이후 메시지 추출
+                            String nickname = Login.getLoggedInUserId(); // 본인의 닉네임
+
+                            // 송신자와 닉네임 비교하여 본인의 메시지는 무시
+                            if (!chatMessage.startsWith(nickname + ":")) {
+                                // 본인이 보낸 메시지가 아닐 때만 추가
+                                String sender = chatMessage.split(":")[0].trim(); // 닉네임 추출
+                                String actualMessage = chatMessage.substring(sender.length() + 1).trim(); // 메시지 내용 추출
+                                appendMessage(sender + ": " + actualMessage, sender.equals("[관전]"));
+                            }
+                        } else {
+                            // 다른 메시지 처리 (예: 게임 진행 관련 메시지)
+                            handleServerMessage(message);
+                        }
                     }
                 } catch (IOException e) {
                     e.printStackTrace();

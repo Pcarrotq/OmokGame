@@ -41,5 +41,11 @@ ALTER TABLE user_info ADD rank INT;
 -- 추가 완료
 ALTER TABLE user_info ADD role VARCHAR(20) DEFAULT 'USER';
 
+UPDATE user_info
+SET role = 'ADMIN'
+WHERE id = 'aaaa';
+
+ALTER TABLE user_info ADD saved_character VARCHAR(50);
+
 
 DROP TABLE user_info;

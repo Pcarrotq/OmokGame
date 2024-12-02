@@ -131,10 +131,63 @@ public class AdminScreenMain extends JFrame {
         JPanel memberButtonPanel = new JPanel();
         memberButtonPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 10, 10));
 
+        JButton addButton = new JButton("추가");
         JButton openButton = new JButton("열람"); // 회원 정보 열람 버튼
         JButton editButton = new JButton("수정"); // 회원 정보 수정 버튼
         JButton blockButton = new JButton("차단");
         JButton deleteButton = new JButton("삭제"); // 회원 차단 버튼
+        
+        addButton.addActionListener(e -> {
+            // 입력 필드에서 값 가져오기
+            String id = idTf.getText().trim();
+            String name = nameTf.getText().trim();
+            String nickname = nicknameTf.getText().trim();
+            String password = new String(passTf.getPassword()).trim();
+            String email = emailLocalTf.getText().trim() + "@" + emailDomainTf.getText().trim();
+            String phone = phoneFrontComboBox.getSelectedItem() + "-" + phoneMiddleTf.getText().trim() + "-" + phoneBackTf.getText().trim();
+            String address = addressTf.getText().trim();
+            String detailedAddress = detailedAddressTf.getText().trim();
+            String birthYear = (String) yearComboBox.getSelectedItem();
+            String birthMonth = (String) monthComboBox.getSelectedItem();
+            String birthDay = (String) dayComboBox.getSelectedItem();
+            String gender = maleButton.isSelected() ? "M" : "F";
+
+            // 입력 검증
+            if (id.isEmpty() || name.isEmpty() || nickname.isEmpty() || password.isEmpty() || email.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "필수 필드를 모두 입력하세요.", "입력 오류", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            try (Connection conn = DBConnection.getConnection();
+                 PreparedStatement pstmt = conn.prepareStatement(
+                     "INSERT INTO user_info (id, name, nickname, password, email, phone_number, address, detailed_address, birth_year, birth_month, birth_day, gender) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                pstmt.setString(1, id);
+                pstmt.setString(2, name);
+                pstmt.setString(3, nickname);
+                pstmt.setString(4, password);
+                pstmt.setString(5, email);
+                pstmt.setString(6, phone);
+                pstmt.setString(7, address);
+                pstmt.setString(8, detailedAddress);
+                pstmt.setInt(9, Integer.parseInt(birthYear));
+                pstmt.setInt(10, Integer.parseInt(birthMonth));
+                pstmt.setInt(11, Integer.parseInt(birthDay));
+                pstmt.setString(12, gender);
+
+                int rowsAffected = pstmt.executeUpdate();
+                if (rowsAffected > 0) {
+                    JOptionPane.showMessageDialog(this, "회원이 성공적으로 추가되었습니다.");
+                    loadTableData(); // 테이블 갱신
+                    clearRightPanel(); // 입력 필드 초기화
+                } else {
+                    JOptionPane.showMessageDialog(this, "회원 추가 실패.", "오류", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this, "데이터베이스 오류: " + ex.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
+            }
+        });
         
         openButton.addActionListener(e -> {
             int selectedRow = memberTable.getSelectedRow();
@@ -255,12 +308,13 @@ public class AdminScreenMain extends JFrame {
                 }
             }
         });
-        
+
         memberButtonPanel.add(openButton);
+        memberButtonPanel.add(addButton);
         memberButtonPanel.add(editButton);
         memberButtonPanel.add(blockButton);
         memberButtonPanel.add(deleteButton);
-        
+
         JButton blockedUsersButton = new JButton("차단 유저");
         JButton deletedUsersButton = new JButton("삭제 유저");
         
@@ -466,6 +520,68 @@ public class AdminScreenMain extends JFrame {
             }
         });
         formPanel.add(changeProfileButton, gbc);
+        
+        // 관리자 상태 표시 라벨
+        JLabel adminStatusLabel = new JLabel();
+        adminStatusLabel.setFont(new Font("Serif", Font.BOLD, 14));
+        adminStatusLabel.setForeground(Color.BLUE); // '관리자' 텍스트 색상 설정
+        gbc.gridy = 5; // '이미지 선택' 버튼 아래로 이동
+        formPanel.add(adminStatusLabel, gbc);
+
+        // 열람 시 관리자 상태 업데이트
+        changeProfileButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setFileFilter(new FileNameExtensionFilter("이미지 파일", "jpg", "jpeg", "png"));
+                int returnValue = fileChooser.showOpenDialog(null);
+                if (returnValue == JFileChooser.APPROVE_OPTION) {
+                    File selectedFile = fileChooser.getSelectedFile();
+                    try {
+                        BufferedImage selectedImage = ImageIO.read(selectedFile);
+
+                        // 이미지 크롭을 위해 ImageCropper 창 열기
+                        ImageCropper cropper = new ImageCropper(selectedImage);
+                        int result = JOptionPane.showConfirmDialog(null, cropper, "이미지 크롭", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE, null);
+
+                        if (result == JOptionPane.OK_OPTION) {
+                            // 사용자가 OK 버튼을 누르면 크롭된 이미지를 가져와서 프로필에 반영
+                            BufferedImage croppedImage = cropper.getCroppedImage();  // 크롭된 이미지 가져오기
+                            if (croppedImage != null) {
+                                profileImage = croppedImage;  // SignUp의 profileImage에 저장
+                                ImageIcon croppedIcon = new ImageIcon(croppedImage.getScaledInstance(150, 150, Image.SCALE_SMOOTH));
+                                imageLabel.setIcon(croppedIcon);
+                                imageLabel.setPreferredSize(new Dimension(150, 150));
+                            }
+                        }
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                        JOptionPane.showMessageDialog(null, "이미지 로드 실패", "오류", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+                
+                // 관리자 상태 확인 후 라벨 업데이트
+                String memberId = idTf.getText();
+                if (memberId.isEmpty()) {
+                    adminStatusLabel.setText("");
+                    return;
+                }
+                try (Connection conn = dbConnection.getConnection();
+                     PreparedStatement pstmt = conn.prepareStatement("SELECT role FROM user_info WHERE id = ?")) {
+                    pstmt.setString(1, memberId);
+                    ResultSet rs = pstmt.executeQuery();
+                    if (rs.next()) {
+                        String role = rs.getString("role");
+                        adminStatusLabel.setText("ADMIN".equalsIgnoreCase(role) ? "관리자" : "");
+                    } else {
+                        adminStatusLabel.setText("");
+                    }
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(null, "데이터베이스 오류: " + ex.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
 
         // Reset grid constraints
         gbc.gridwidth = 1;
@@ -633,6 +749,55 @@ public class AdminScreenMain extends JFrame {
 
         // 중앙에 formPanel 추가
         memberEditPanel.add(formPanel, BorderLayout.CENTER);
+        
+        JButton grantAdminButton = new JButton("관리자 권한 부여");
+        JButton revokeAdminButton = new JButton("관리자 권한 해제");
+        
+        grantAdminButton.addActionListener(e -> {
+            int selectedRow = memberTable.getSelectedRow();
+            if (selectedRow == -1) {
+                JOptionPane.showMessageDialog(this, "권한을 부여할 사용자를 선택하세요.");
+                return;
+            }
+
+            String memberId = memberTable.getValueAt(selectedRow, 0).toString();
+            try (Connection conn = dbConnection.getConnection();
+                 PreparedStatement pstmt = conn.prepareStatement("UPDATE user_info SET role = 'ADMIN' WHERE id = ?")) {
+                pstmt.setString(1, memberId);
+                int rowsUpdated = pstmt.executeUpdate();
+                if (rowsUpdated > 0) {
+                    JOptionPane.showMessageDialog(this, "관리자 권한이 부여되었습니다.");
+                } else {
+                    JOptionPane.showMessageDialog(this, "권한 부여 실패.", "오류", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this, "데이터베이스 오류: " + ex.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        
+        revokeAdminButton.addActionListener(e -> {
+            int selectedRow = memberTable.getSelectedRow();
+            if (selectedRow == -1) {
+                JOptionPane.showMessageDialog(this, "권한을 해제할 사용자를 선택하세요.");
+                return;
+            }
+
+            String memberId = memberTable.getValueAt(selectedRow, 0).toString();
+            try (Connection conn = dbConnection.getConnection();
+                 PreparedStatement pstmt = conn.prepareStatement("UPDATE user_info SET role = 'USER' WHERE id = ?")) {
+                pstmt.setString(1, memberId);
+                int rowsUpdated = pstmt.executeUpdate();
+                if (rowsUpdated > 0) {
+                    JOptionPane.showMessageDialog(this, "관리자 권한이 해제되었습니다.");
+                } else {
+                    JOptionPane.showMessageDialog(this, "권한 해제 실패.", "오류", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this, "데이터베이스 오류: " + ex.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
+            }
+        });
 
         // Save and Cancel buttons
         JPanel buttonPanel = new JPanel();
@@ -651,6 +816,9 @@ public class AdminScreenMain extends JFrame {
             	dispose();
             }
         });
+        
+        buttonPanel.add(grantAdminButton);
+        buttonPanel.add(revokeAdminButton);
         buttonPanel.add(saveButton);
         buttonPanel.add(cancelButton);
 

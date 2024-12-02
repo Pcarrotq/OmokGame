@@ -46,25 +46,30 @@ public class GameServer {
             // 클라이언트의 턴인지 확인
             if (client.isBlackPlayer() != isBlackTurn) {
                 client.sendMessage("INVALID_TURN");
+                System.out.println("Invalid turn for client: " + client + ", Room: " + roomName);
                 return false;
             }
 
             BoardMap map = roomMaps.get(roomName);
             if (map == null || map.getXY(y, x) != 0) {
                 client.sendMessage("PLACE_FAIL");
+                System.out.println("Place failed at (" + x + ", " + y + "), Room: " + roomName);
                 return false;
             }
 
             // 돌 배치 및 승리 체크
             map.setMap(y, x, isBlackTurn ? BLACK : WHITE);
+            System.out.println("Stone placed at (" + x + ", " + y + ") by " + (isBlackTurn ? "Black" : "White"));
             boolean isWin = map.winCheck(x, y);
 
             if (isWin) {
                 broadcastToRoom(roomName, "WIN " + (isBlackTurn ? "BLACK" : "WHITE"));
+                System.out.println("Game won by " + (isBlackTurn ? "Black" : "White") + " in Room: " + roomName);
                 resetRoom(roomName);
             } else {
                 toggleTurn(roomName);
                 broadcastToRoom(roomName, "UPDATE " + x + " " + y);
+                System.out.println("Turn toggled for Room: " + roomName);
             }
             return true;
         }
@@ -104,6 +109,7 @@ public class GameServer {
         List<ClientHandler> clientsInRoom = roomClients.get(roomName);
         if (clientsInRoom != null) {
             for (ClientHandler client : clientsInRoom) {
+            	System.out.println("Sending message to client in room: " + roomName + " Message: " + message);
                 client.sendMessage(message);
             }
         }
@@ -118,8 +124,11 @@ public class GameServer {
             client.setBlackPlayer(clientsInRoom.isEmpty()); // 첫 번째 클라이언트는 흑, 두 번째는 백
             clientsInRoom.add(client);
             client.setRoomName(roomName);
+            System.out.println("Client joined room: " + roomName + ", Current clients: " + clientsInRoom.size());
             return true;
         }
+        
+        System.out.println("Join failed for room: " + roomName + ", Room is full");
         return false;
     }
 
@@ -152,6 +161,15 @@ public class GameServer {
         // 전체 클라이언트 목록에서 제거
         clients.remove(client);
         System.out.println("클라이언트 연결 종료. 현재 클라이언트 수: " + clients.size());
+    }
+    
+    public synchronized void broadcastChatMessage(String roomName, String message) {
+        List<ClientHandler> clientsInRoom = roomClients.get(roomName);
+        if (clientsInRoom != null) {
+            for (ClientHandler client : clientsInRoom) {
+                client.sendMessage("[CHAT] " + message); // 방별로 채팅 메시지 전달
+            }
+        }
     }
 
     private class ClientHandler implements Runnable {
@@ -222,6 +240,14 @@ public class GameServer {
                         String roomName = this.roomName;
                         if (roomName != null) {
                             server.handleTimeout(roomName);
+                        }
+                    } else if (message.startsWith("[CHAT]")) {
+                        // 채팅 메시지 처리
+                        String chatMessage = message.substring(6); // "[CHAT] " 이후의 메시지 추출
+                        if (roomName != null) {
+                            server.broadcastChatMessage(roomName, chatMessage);
+                        } else {
+                            sendMessage("[ERROR] You are not in a room.");
                         }
                     }
                 }

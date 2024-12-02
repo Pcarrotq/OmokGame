@@ -413,6 +413,23 @@ public class Lobby extends JFrame {
         mainPanel.add(bottomPanel, BorderLayout.SOUTH);
 	}
 	
+	private void openGameRoom() {
+	    String roomName = "게임 방"; // 실제로는 서버에서 받은 방 이름을 사용
+	    int serverPort = 8081; // GameServer 포트
+
+	    JFrame gameFrame = new JFrame("게임 방: " + roomName);
+	    gameFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+	    gameFrame.setSize(1500, 1000);
+
+	    GUI gameGui = new GUI(roomName, "127.0.0.1", serverPort); // GUI 생성
+	    gameFrame.add(gameGui);
+
+	    gameFrame.setVisible(true);
+
+	    // 로비 창 닫기
+	    frame.dispose();
+	}
+	
 	private String getUserRole(String userId) {
 	    String role = null;
 	    try (Connection conn = dbConnection.getConnection()) {
@@ -465,7 +482,12 @@ public class Lobby extends JFrame {
 	                final String message = receivedMessage.trim();
 
 	                SwingUtilities.invokeLater(() -> {
-	                    if (message.startsWith("[ROOM_LIST]")) {
+	                	if (message.equals("[JOIN_SUCCESS]")) {
+	                        // 게임 방 GUI로 이동
+	                        openGameRoom(); // 게임 방 GUI를 여는 메서드 호출
+	                    } else if (message.equals("[JOIN_FAIL]")) {
+	                        JOptionPane.showMessageDialog(frame, "방 입장에 실패했습니다.", "오류", JOptionPane.ERROR_MESSAGE);
+	                    } else if (message.startsWith("[ROOM_LIST]")) {
 	                        String roomData = message.length() > 12 ? message.substring(12).trim() : ""; // 안전한 추출
 	                        updateRoomList(roomData); // UI 업데이트
 	                    } else {

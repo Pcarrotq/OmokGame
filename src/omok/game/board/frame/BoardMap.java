@@ -35,6 +35,8 @@ public class BoardMap {
         } else {
             throw new IllegalArgumentException("유효하지 않은 돌 색상입니다. 흑돌 또는 백돌만 허용됩니다.");
         }
+        
+        System.out.println("Updating map at (" + x + ", " + y + ")");
     }
 
     public void changeCheck() {
