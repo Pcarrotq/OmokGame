@@ -246,14 +246,16 @@ public class DBConnection {
     // 닉네임으로 유저 ID 가져오기
     public String getUserIdByNickname(String nickname) {
         String userId = null;
-        String sql = "SELECT id FROM user_info WHERE nickname = ?";
-        try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conn = getConnection()) {
+            String query = "SELECT id FROM user_info WHERE nickname = ?";
+            PreparedStatement pstmt = conn.prepareStatement(query);
             pstmt.setString(1, nickname);
             ResultSet rs = pstmt.executeQuery();
             if (rs.next()) {
                 userId = rs.getString("id");
             }
+            rs.close();
+            pstmt.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }

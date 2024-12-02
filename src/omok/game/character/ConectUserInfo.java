@@ -102,13 +102,6 @@ public class ConectUserInfo extends JPanel {
         confirmButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String newIntro = introField.getText().trim();
-                if (userProfile != null && !newIntro.equals(userProfile.getIntro())) {
-                    dbConnection.updateIntro(userId, newIntro);
-                    JOptionPane.showMessageDialog(frame, "한 줄 소개가 저장되었습니다.");
-                } else {
-                    JOptionPane.showMessageDialog(frame, "변경 사항이 없습니다.");
-                }
                 frame.dispose();
             }
         });

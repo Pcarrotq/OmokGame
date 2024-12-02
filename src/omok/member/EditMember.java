@@ -2,6 +2,7 @@ package omok.member;
 
 import javax.swing.*;
 
+import omok.additional.CharacterSelectionScreen;
 import omok.member.db.DBConnection;
 
 import java.awt.*;
@@ -19,6 +20,10 @@ public class EditMember extends JFrame {
     private JButton postalCodeBtn, saveButton, cancelButton, changeProfileButton, idCheckButton, nicknameButton;
     private BufferedImage profileImage;
     private ButtonGroup sexGroup;
+    
+    private JButton selectCharacterButton;
+    private JLabel selectedCharacterLabel;
+    private String selectedCharacter;
 
     private String userId;
     private DBConnection dbConnection = new DBConnection();
@@ -74,6 +79,21 @@ public class EditMember extends JFrame {
         profilePanel.add(imageLabel);
 
         profilePanel.add(Box.createVerticalStrut(10));
+        
+        // Add a label and button for character selection
+        JLabel characterLabel = new JLabel("Character");
+        selectedCharacterLabel = new JLabel("No character selected");
+        selectCharacterButton = new JButton("Select Character");
+
+        selectCharacterButton.addActionListener(e -> openCharacterSelectionScreen());
+
+        profilePanel.add(Box.createVerticalStrut(10)); // Add spacing
+        profilePanel.add(characterLabel);
+        profilePanel.add(selectedCharacterLabel);
+        profilePanel.add(selectCharacterButton);
+
+        // Load saved character if available
+        loadSavedCharacter(userId);
 
         changeProfileButton = new JButton("Change Profile Picture");
         profilePanel.add(changeProfileButton);
@@ -281,6 +301,48 @@ public class EditMember extends JFrame {
         } catch (SQLException e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(null, "Error loading user data: " + e.getMessage());
+        }
+    }
+    
+    private void loadSavedCharacter(String userId) {
+        try (Connection conn = dbConnection.getConnection()) {
+            String query = "SELECT saved_character FROM user_info WHERE id = ?";
+            PreparedStatement pstmt = conn.prepareStatement(query);
+            pstmt.setString(1, userId);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                selectedCharacter = rs.getString("saved_character");
+                if (selectedCharacter != null && !selectedCharacter.isEmpty()) {
+                    selectedCharacterLabel.setText("Selected: " + selectedCharacter);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error loading saved character.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    private void openCharacterSelectionScreen() {
+        new CharacterSelectionScreen(selectedCharacter -> {
+            this.selectedCharacter = selectedCharacter;
+            selectedCharacterLabel.setText("Selected: " + selectedCharacter);
+
+            // Optionally save to DB immediately
+            saveSelectedCharacter(userId, selectedCharacter);
+        });
+    }
+
+    private void saveSelectedCharacter(String userId, String character) {
+        try (Connection conn = dbConnection.getConnection()) {
+            String query = "UPDATE user_info SET saved_character = ? WHERE id = ?";
+            PreparedStatement pstmt = conn.prepareStatement(query);
+            pstmt.setString(1, character);
+            pstmt.setString(2, userId);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error saving selected character.", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 

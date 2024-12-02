@@ -48,6 +48,7 @@ public class Lobby extends JFrame {
     
     private DefaultTableModel tableModel;
     private DefaultTableModel userModel;
+    private DefaultTableModel rankModel;
     private DefaultListModel<String> userListModel;
     private List<String> roomList;
     
@@ -374,8 +375,27 @@ public class Lobby extends JFrame {
         tabbedPane.addTab("유저", userScrollPane);
 
         // "랭킹" 탭
-        DefaultTableModel rankModel = new DefaultTableModel(new String[]{"순위", "닉네임", "점수"}, 0);
+        rankModel = new DefaultTableModel(new String[]{"순위", "닉네임", "점수"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // 모든 셀 수정 불가
+            }
+        };
         JTable rankTable = new JTable(rankModel);
+        // 더블 클릭 이벤트 리스너
+        rankTable.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2) { // 더블 클릭 이벤트
+                    int selectedRow = rankTable.getSelectedRow();
+                    if (selectedRow != -1) {
+                        String selectedUserNickname = (String) rankModel.getValueAt(selectedRow, 1); // 닉네임 가져오기
+                        String userId = dbConnection.getUserIdByNickname(selectedUserNickname); // 닉네임으로 ID 가져오기
+                        SwingUtilities.invokeLater(() -> new ConectUserInfo(userId)); // ID를 ConectUserInfo로 전달
+                    }
+                }
+            }
+        });
         rankTable.setRowHeight(30);
         
         // 열 너비 조정
